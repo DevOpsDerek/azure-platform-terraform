@@ -12,6 +12,13 @@ variable "required_tags" {
     condition     = contains(var.required_tags, "owner") && contains(var.required_tags, "costCenter")
     error_message = "required_tags must include both 'owner' and 'costCenter' to maintain the platform metadata baseline."
   }
+
+  validation {
+    condition = alltrue([
+      for tag in var.required_tags : length(join("", regexall("[0-9A-Za-z-]", tag))) > 0
+    ])
+    error_message = "Each required_tags value must contain at least one alphanumeric or hyphen character."
+  }
 }
 
 variable "enforcement_mode" {
@@ -45,5 +52,12 @@ variable "policy_exemptions" {
       length(trimspace(exemption.justification)) > 0
     ])
     error_message = "Each policy exemption must include a valid RFC3339 UTC expires_on value (YYYY-MM-DDTHH:MM:SSZ), a non-empty justification, and a non-empty review_by."
+  }
+
+  validation {
+    condition = alltrue([
+      for key in keys(var.policy_exemptions) : length(join("", regexall("[0-9A-Za-z-]", key))) > 0
+    ])
+    error_message = "Each policy_exemptions key must contain at least one alphanumeric or hyphen character."
   }
 }

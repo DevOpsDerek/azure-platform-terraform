@@ -12,7 +12,7 @@ This is intentionally not a full compliance baseline.
 All policies are assigned at the **subscription scope** (`var.subscription_id`).
 
 | Control | Scope | Effect |
-|---|---|---|
+| --- | --- | --- |
 | Required tags (`owner`, `costCenter` by default) | Subscription | `deny` |
 | Storage HTTPS-only | Subscription | `deny` |
 
