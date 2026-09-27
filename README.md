@@ -62,6 +62,7 @@ The fixtures include intentionally non-compliant changes:
 
 - `tests/non_compliant_exemption/main.tf` removes `costcenter` from required metadata tags.
 - `tests/non_compliant_exemption_timestamp/main.tf` uses an invalid exemption expiry timestamp.
+- `tests/non_compliant_exemption_semantic_timestamp/main.tf` uses an impossible date/time despite matching timestamp shape.
 - `tests/non_compliant_exemption_metadata/main.tf` uses blank exemption review metadata.
 - `tests/non_compliant_exemption_key/main.tf` uses an invalid exemption key format.
 

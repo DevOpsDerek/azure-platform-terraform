@@ -8,6 +8,7 @@ trap 'rm -f "${OUTPUT_FILE}"' EXIT
 run_expected_failure() {
   local fixture_dir="$1"
   local expected_error="$2"
+  local expected_context="$3"
 
   local status=0
 
@@ -36,11 +37,18 @@ run_expected_failure() {
     cat "${OUTPUT_FILE}"
     exit 1
   fi
+
+  if ! grep -Fq "${expected_context}" "${OUTPUT_FILE}"; then
+    echo "Terraform failed for fixture ${fixture_dir}, but not on the expected validation context."
+    cat "${OUTPUT_FILE}"
+    exit 1
+  fi
 }
 
-run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption" "required_tags must include both 'owner' and 'costcenter'"
-run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_timestamp" "Each policy exemption must include a valid RFC3339 UTC expires_on value"
-run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_metadata" "Each policy exemption must include a valid RFC3339 UTC expires_on value"
-run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_key" "Each policy_exemptions key must use lowercase letters, numbers, and hyphens"
+run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption" "required_tags must include both 'owner' and 'costcenter'" "var.required_tags"
+run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_timestamp" "Each policy exemption must include a valid RFC3339 UTC expires_on value" "var.policy_exemptions"
+run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_semantic_timestamp" "Each policy exemption must include a valid RFC3339 UTC expires_on value" "var.policy_exemptions"
+run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_metadata" "Each policy exemption must include a valid RFC3339 UTC expires_on value" "var.policy_exemptions"
+run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_key" "Each policy_exemptions key must use lowercase letters, numbers, and hyphens" "var.policy_exemptions"
 
 echo "Negative validation succeeded: non-compliant governance fixtures were rejected."
