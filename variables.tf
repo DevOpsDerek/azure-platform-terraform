@@ -48,6 +48,7 @@ variable "policy_exemptions" {
     condition = alltrue([
       for exemption in values(var.policy_exemptions) :
       can(regex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", exemption.expires_on)) &&
+      can(timecmp(exemption.expires_on, exemption.expires_on)) &&
       length(trimspace(exemption.review_by)) > 0 &&
       length(trimspace(exemption.justification)) > 0
     ])
