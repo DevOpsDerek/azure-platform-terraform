@@ -46,6 +46,18 @@ variable "aks_subnet_cidr" {
   default     = "10.10.0.0/24"
 }
 
+variable "service_cidr" {
+  description = "CIDR used by Kubernetes services inside the AKS cluster."
+  type        = string
+  default     = "10.20.0.0/16"
+}
+
+variable "dns_service_ip" {
+  description = "IP address used by the Kubernetes DNS service (must be inside service_cidr)."
+  type        = string
+  default     = "10.20.0.10"
+}
+
 variable "authorized_ip_ranges" {
   description = "Allowed CIDR ranges for AKS API server access."
   type        = list(string)

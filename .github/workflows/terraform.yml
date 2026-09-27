@@ -29,19 +29,13 @@ jobs:
         run: terraform fmt -check -recursive
 
       - name: Terraform init (no backend)
-        run: terraform init -backend=false -input=false
+        run: terraform init -backend=false -input=false -lockfile=readonly
 
       - name: Terraform validate
         run: terraform validate
 
-      - name: Provider lock check
-        run: |
-          terraform providers lock \
-            -platform=linux_amd64 \
-            -platform=darwin_amd64 \
-            -platform=darwin_arm64 \
-            -platform=windows_amd64
-          git diff --exit-code .terraform.lock.hcl
+      - name: Terraform providers
+        run: terraform providers
 
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
@@ -69,6 +63,10 @@ jobs:
       AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: true
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

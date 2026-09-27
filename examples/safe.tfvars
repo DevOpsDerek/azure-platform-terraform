@@ -6,5 +6,7 @@ node_count           = 1
 node_vm_size         = "Standard_D2s_v5"
 address_space        = ["10.10.0.0/16"]
 aks_subnet_cidr      = "10.10.0.0/24"
+service_cidr         = "10.20.0.0/16"
+dns_service_ip       = "10.20.0.10"
 authorized_ip_ranges = []
 tags                 = {}
