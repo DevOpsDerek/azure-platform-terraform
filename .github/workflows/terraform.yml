@@ -78,9 +78,9 @@ jobs:
 
       - name: Validate plan prerequisites
         run: |
-          test -n "${AZURE_CLIENT_ID}" || (echo "Missing repository variable: AZURE_CLIENT_ID" && exit 1)
-          test -n "${AZURE_TENANT_ID}" || (echo "Missing repository variable: AZURE_TENANT_ID" && exit 1)
-          test -n "${AZURE_SUBSCRIPTION_ID}" || (echo "Missing repository variable: AZURE_SUBSCRIPTION_ID" && exit 1)
+          test -n "${AZURE_CLIENT_ID}" || (echo "Missing repository variable: AZURE_CLIENT_ID (repository variables are not exposed to fork-triggered runs)." && exit 1)
+          test -n "${AZURE_TENANT_ID}" || (echo "Missing repository variable: AZURE_TENANT_ID (repository variables are not exposed to fork-triggered runs)." && exit 1)
+          test -n "${AZURE_SUBSCRIPTION_ID}" || (echo "Missing repository variable: AZURE_SUBSCRIPTION_ID (repository variables are not exposed to fork-triggered runs)." && exit 1)
 
       - name: Azure login (OIDC)
         uses: azure/login@v2
