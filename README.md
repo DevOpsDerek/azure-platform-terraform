@@ -79,6 +79,7 @@ Use conservative node sizing defaults first and tune upward based on measured wo
 For non-production environments only:
 
 ```bash
+terraform init -input=false # include backend config flags when using remote state
 terraform destroy -var-file=examples/safe.tfvars
 ```
 
