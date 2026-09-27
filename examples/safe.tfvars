@@ -1,0 +1,10 @@
+name_prefix          = "ref"
+environment          = "dev"
+location             = "eastus"
+kubernetes_version   = "1.30.9"
+node_count           = 1
+node_vm_size         = "Standard_D2s_v5"
+address_space        = ["10.10.0.0/16"]
+aks_subnet_cidr      = "10.10.0.0/24"
+authorized_ip_ranges = ["10.0.0.0/24"]
+tags                 = {}
