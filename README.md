@@ -38,8 +38,8 @@ Terraform validation enforces that exemptions:
 
 Exception process requirement:
 
-- requests should set a future `expires_on` (operational review check)
-- expiry should be limited to 90 days (operational review check; renewal requires new review/approval)
+- requests should set a future `expires_on` (**manual operational review check**, not Terraform input validation)
+- expiry should be limited to 90 days (**manual operational review check**; renewal requires new review/approval)
 
 Exemptions are created as `azurerm_subscription_policy_exemption` resources and carry request/review metadata.
 
