@@ -39,7 +39,7 @@ resource "azurerm_log_analytics_workspace" "platform" {
   tags                = local.tags
 }
 
-resource "azurerm_kubernetes_cluster" "platform" { #tfsec:ignore:azure-container-limit-authorized-ips Modern provider syntax uses api_server_access_profile block.
+resource "azurerm_kubernetes_cluster" "platform" { #tfsec:ignore:azure-container-limit-authorized-ips Provider v4 uses api_server_access_profile instead of the legacy top-level argument.
   name                              = "aks-${local.base_name}"
   location                          = azurerm_resource_group.platform.location
   resource_group_name               = azurerm_resource_group.platform.name

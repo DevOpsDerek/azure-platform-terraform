@@ -34,9 +34,16 @@ jobs:
       - name: Terraform validate
         run: terraform validate
 
+      - name: Verify API server IP restrictions are configured
+        run: grep -Eq "authorized_ip_ranges\\s*=" main.tf
+
       - name: Provider lock check
         run: |
-          terraform providers lock -platform=linux_amd64
+          terraform providers lock \
+            -platform=linux_amd64 \
+            -platform=darwin_amd64 \
+            -platform=darwin_arm64 \
+            -platform=windows_amd64
           git diff --exit-code .terraform.lock.hcl
 
       - name: Setup TFLint
@@ -55,7 +62,7 @@ jobs:
           soft_fail: false
 
   terraform-plan:
-    if: github.event_name == 'workflow_dispatch' && inputs.run_plan
+    if: github.event_name == 'workflow_dispatch' && inputs.run_plan == 'true'
     needs: terraform-checks
     runs-on: ubuntu-latest
     permissions:
