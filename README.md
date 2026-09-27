@@ -13,7 +13,7 @@ All policies are assigned at the **subscription scope** (`var.subscription_id`).
 
 | Control | Scope | Effect |
 | --- | --- | --- |
-| Required tags (`owner`, `costCenter` by default) | Subscription | `deny` |
+| Required tags (`owner`, `costcenter` by default) | Subscription | `deny` |
 | Storage HTTPS-only | Subscription | `deny` |
 
 Assignments support `var.enforcement_mode`:
@@ -60,7 +60,7 @@ terraform validate
 
 The fixtures include intentionally non-compliant changes:
 
-- `tests/non_compliant_exemption/main.tf` removes `costCenter` from required metadata tags.
+- `tests/non_compliant_exemption/main.tf` removes `costcenter` from required metadata tags.
 - `tests/non_compliant_exemption_timestamp/main.tf` uses an invalid exemption expiry timestamp.
 
 Run:

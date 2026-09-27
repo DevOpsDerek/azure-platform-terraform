@@ -18,7 +18,7 @@ provider "azurerm" {
 resource "azurerm_policy_definition" "required_tags" {
   for_each = var.required_tags
 
-  name         = "require-tag-${lower(join("", regexall("[0-9A-Za-z-]", each.value)))}"
+  name         = "require-tag-${each.value}"
   policy_type  = "Custom"
   mode         = "Indexed"
   display_name = "Require ${each.value} tag on resources"
@@ -80,7 +80,7 @@ resource "azurerm_policy_definition" "storage_https_only" {
 resource "azurerm_subscription_policy_assignment" "required_tags" {
   for_each = azurerm_policy_definition.required_tags
 
-  name                 = substr("required-tag-${lower(join("", regexall("[0-9A-Za-z-]", each.key)))}", 0, 64)
+  name                 = substr("required-tag-${each.key}", 0, 64)
   subscription_id      = var.subscription_id
   policy_definition_id = each.value.id
   display_name         = "Require ${each.key} tag"
@@ -105,7 +105,7 @@ locals {
 resource "azurerm_subscription_policy_exemption" "this" {
   for_each = var.policy_exemptions
 
-  name                 = substr("exemption-${lower(join("", regexall("[0-9A-Za-z-]", each.key)))}", 0, 64)
+  name                 = substr("exemption-${each.key}", 0, 64)
   subscription_id      = var.subscription_id
   policy_assignment_id = each.value.assignment_id
   exemption_category   = "Waiver"

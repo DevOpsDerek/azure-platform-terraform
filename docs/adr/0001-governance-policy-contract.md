@@ -12,7 +12,7 @@ We need a small, explicit, testable governance baseline that is enforced as plat
 
 We define and assign a deliberately small set of custom Azure Policies at subscription scope:
 
-1. **Required metadata**: deny resources that do not include required tags (`owner`, `costCenter` by default).
+1. **Required metadata**: deny resources that do not include required tags (`owner`, `costcenter` by default).
 2. **Secure configuration**: deny storage accounts that do not enforce HTTPS-only traffic.
 
 Assignments are created with configurable enforcement mode:

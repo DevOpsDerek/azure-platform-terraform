@@ -6,18 +6,18 @@ variable "subscription_id" {
 variable "required_tags" {
   description = "Tag keys that every resource must include."
   type        = set(string)
-  default     = ["owner", "costCenter"]
+  default     = ["owner", "costcenter"]
 
   validation {
-    condition     = contains(var.required_tags, "owner") && contains(var.required_tags, "costCenter")
-    error_message = "required_tags must include both 'owner' and 'costCenter' to maintain the platform metadata baseline."
+    condition     = contains(var.required_tags, "owner") && contains(var.required_tags, "costcenter")
+    error_message = "required_tags must include both 'owner' and 'costcenter' to maintain the platform metadata baseline."
   }
 
   validation {
     condition = alltrue([
-      for tag in var.required_tags : length(join("", regexall("[0-9A-Za-z-]", tag))) > 0
+      for tag in var.required_tags : can(regex("^[a-z0-9-]+$", tag))
     ])
-    error_message = "Each required_tags value must contain at least one alphanumeric or hyphen character."
+    error_message = "Each required_tags value must use lowercase letters, numbers, and hyphens only."
   }
 }
 
@@ -56,8 +56,8 @@ variable "policy_exemptions" {
 
   validation {
     condition = alltrue([
-      for key in keys(var.policy_exemptions) : length(join("", regexall("[0-9A-Za-z-]", key))) > 0
+      for key in keys(var.policy_exemptions) : can(regex("^[a-z0-9-]+$", key))
     ])
-    error_message = "Each policy_exemptions key must contain at least one alphanumeric or hyphen character."
+    error_message = "Each policy_exemptions key must use lowercase letters, numbers, and hyphens only."
   }
 }
