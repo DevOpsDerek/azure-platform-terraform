@@ -39,7 +39,7 @@ resource "azurerm_log_analytics_workspace" "platform" {
   tags                = local.tags
 }
 
-resource "azurerm_kubernetes_cluster" "platform" { #tfsec:ignore:azure-container-limit-authorized-ips Provider v4 uses api_server_access_profile instead of the legacy top-level argument. #tfsec:ignore:azure-container-configured-network-policy Network policy mode is intentionally left open pending ADR decisions. #tfsec:ignore:azure-container-logging Baseline avoids enabling legacy OMS agent by default.
+resource "azurerm_kubernetes_cluster" "platform" { #tfsec:ignore:azure-container-limit-authorized-ips Provider v4 uses api_server_access_profile instead of the legacy top-level argument. #tfsec:ignore:azure-container-configured-network-policy Network policy mode is intentionally left open pending ADR decisions.
   name                              = "aks-${local.base_name}"
   location                          = azurerm_resource_group.platform.location
   resource_group_name               = azurerm_resource_group.platform.name
@@ -58,6 +58,10 @@ resource "azurerm_kubernetes_cluster" "platform" { #tfsec:ignore:azure-container
 
   identity {
     type = "SystemAssigned"
+  }
+
+  oms_agent {
+    log_analytics_workspace_id = azurerm_log_analytics_workspace.platform.id
   }
 
   network_profile {

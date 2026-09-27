@@ -1,7 +1,7 @@
 name_prefix          = "ref"
 environment          = "dev"
 location             = "eastus"
-kubernetes_version   = "1.30.9"
+kubernetes_version   = "1.32.9"
 node_count           = 1
 node_vm_size         = "Standard_D2s_v5"
 address_space        = ["10.10.0.0/16"]

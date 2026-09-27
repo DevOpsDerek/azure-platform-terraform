@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -53,9 +53,10 @@ jobs:
           soft_fail: false
 
   terraform-plan:
-    if: github.event_name == 'workflow_dispatch' && inputs.run_plan
+    if: github.event_name == 'workflow_dispatch' && inputs.run_plan && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.ref_protected
     needs: terraform-checks
     runs-on: ubuntu-latest
+    environment: terraform-plan
     permissions:
       contents: read
       id-token: write
@@ -69,7 +70,7 @@ jobs:
       ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
