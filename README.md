@@ -27,6 +27,7 @@ Key parameters are documented in `variables.tf`, including:
 - naming (`name_prefix`)
 - environment (`environment`)
 - sizing (`node_count`, `node_vm_size`)
+- API server restriction (`authorized_ip_ranges`, default empty and must be set for restricted production access)
 
 ## Remote state requirements (before live deployment)
 

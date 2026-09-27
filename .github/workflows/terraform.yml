@@ -59,7 +59,7 @@ jobs:
           soft_fail: false
 
   terraform-plan:
-    if: github.event_name == 'workflow_dispatch' && inputs.run_plan == 'true'
+    if: github.event_name == 'workflow_dispatch' && inputs.run_plan
     needs: terraform-checks
     runs-on: ubuntu-latest
     permissions:
@@ -95,7 +95,7 @@ jobs:
         run: terraform init -backend=false -input=false
 
       - name: Terraform plan (no apply)
-        run: terraform plan -lock=false -input=false -refresh=false -var-file=examples/safe.tfvars -out=tfplan
+        run: terraform plan -lock=false -input=false -var-file=examples/safe.tfvars -out=tfplan
 
       - name: Upload plan artifact
         uses: actions/upload-artifact@v4
