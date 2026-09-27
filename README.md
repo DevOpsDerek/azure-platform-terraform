@@ -28,7 +28,7 @@ Key parameters are documented in `variables.tf`, including:
 - environment (`environment`)
 - sizing (`node_count`, `node_vm_size`)
 - cluster service networking (`service_cidr`, `dns_service_ip`)
-- API server restriction (`authorized_ip_ranges`, default empty and must be set for restricted production access)
+- API server restriction (`authorized_ip_ranges`, default placeholder CIDR that must be replaced before deployment)
 
 ## Remote state requirements (before live deployment)
 

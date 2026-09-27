@@ -72,11 +72,8 @@ resource "azurerm_kubernetes_cluster" "platform" { #tfsec:ignore:azure-container
     load_balancer_sku = "standard"
   }
 
-  dynamic "api_server_access_profile" {
-    for_each = length(var.authorized_ip_ranges) > 0 ? [1] : []
-    content {
-      authorized_ip_ranges = var.authorized_ip_ranges
-    }
+  api_server_access_profile {
+    authorized_ip_ranges = var.authorized_ip_ranges
   }
 
 }
