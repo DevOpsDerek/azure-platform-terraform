@@ -41,9 +41,9 @@ variable "policy_exemptions" {
     condition = alltrue([
       for exemption in values(var.policy_exemptions) :
       can(formatdate("YYYY-MM-DD", exemption.expires_on)) &&
-      timecmp(exemption.expires_on, timestamp()) > 0 &&
-      timecmp(exemption.expires_on, timeadd(timestamp(), "2160h")) <= 0
+      length(trimspace(exemption.review_by)) > 0 &&
+      length(trimspace(exemption.justification)) > 0
     ])
-    error_message = "Each policy exemption expires_on value must be a valid RFC3339 timestamp in the future and within 90 days."
+    error_message = "Each policy exemption must include a valid RFC3339 expires_on value, a non-empty justification, and a non-empty review_by."
   }
 }

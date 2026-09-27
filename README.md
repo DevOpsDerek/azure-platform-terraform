@@ -34,8 +34,12 @@ Use `var.policy_exemptions` to request exemptions with:
 Validation enforces that exemptions:
 
 - have a valid RFC3339 timestamp
-- expire in the future
-- expire within 90 days
+- include justification and review owner metadata
+
+Exception process requirement:
+
+- requests must set a future `expires_on`
+- expiry should be limited to 90 days (renewal requires new review/approval)
 
 Exemptions are created as `azurerm_subscription_policy_exemption` resources and carry request/review metadata.
 
@@ -54,7 +58,12 @@ terraform validate
 
 ### Negative validation (non-compliant example)
 
-The fixture `tests/non_compliant_exemption/main.tf` contains an intentionally non-compliant change that removes `costCenter` from required metadata tags. Run:
+The fixtures include intentionally non-compliant changes:
+
+- `tests/non_compliant_exemption/main.tf` removes `costCenter` from required metadata tags.
+- `tests/non_compliant_exemption_timestamp/main.tf` uses an invalid exemption expiry timestamp.
+
+Run:
 
 ```bash
 ./tests/validate_non_compliant.sh

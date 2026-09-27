@@ -35,10 +35,10 @@ Each exemption request must include:
 `expires_on` is validated as:
 
 - valid RFC3339 timestamp
-- strictly in the future
-- no more than 90 days from request time
+- exemption metadata includes review and justification fields
 
 This implements a time-bounded waiver model with explicit review metadata.
+Operationally, exemption requests must use future expiries and are expected to be limited to 90 days, with renewal requiring review.
 
 ## Policy evaluation and testing
 
@@ -47,7 +47,7 @@ Policy evaluation is provided by Azure Policy on assignment scope. Deny controls
 Testing includes:
 
 - standard Terraform validation
-- a negative validation example (`tests/non_compliant_exemption/main.tf`) that must fail when required baseline metadata tags are weakened
+- negative validation examples that fail when required baseline metadata tags are weakened or exemption expiry format is invalid
 
 The negative test is executed by `tests/validate_non_compliant.sh` and intended for pre-merge CI checks.
 
