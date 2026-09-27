@@ -54,6 +54,7 @@ terraform {
 
 - CI validation on pull requests is credential-free and does **not** apply.
 - Optional plan generation can use Azure federated identity (OIDC) on `workflow_dispatch`.
+- The plan job is opt-in (`run_plan=true`) and requires repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`.
 - Live deployment is intentionally out of scope for routine CI and must be human-approved.
 
 ## Network and security assumptions

@@ -66,7 +66,7 @@ resource "azurerm_kubernetes_cluster" "platform" { #tfsec:ignore:azure-container
 
   network_profile {
     network_plugin = "azure"
-    network_policy = "azure"
+    network_policy = "calico"
   }
 
   api_server_access_profile {
