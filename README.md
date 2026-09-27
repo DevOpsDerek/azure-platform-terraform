@@ -13,7 +13,7 @@ This repository provides a composable, version-pinned Terraform reference for a 
 
 ```bash
 cp examples/safe.tfvars terraform.tfvars
-terraform init -backend=false
+terraform init -backend=false -input=false -lockfile=readonly
 terraform fmt -check -recursive
 terraform validate
 ```

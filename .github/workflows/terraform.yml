@@ -90,7 +90,7 @@ jobs:
           subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
       - name: Terraform init (no backend)
-        run: terraform init -backend=false -input=false
+        run: terraform init -backend=false -input=false -lockfile=readonly
 
       - name: Terraform plan (no apply)
         run: terraform plan -lock=false -input=false -var-file=examples/safe.tfvars -out=tfplan
