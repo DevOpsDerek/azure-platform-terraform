@@ -1,76 +1,132 @@
-# Azure platform Terraform governance baseline
+# Azure Platform Terraform Reference (AKS + Governance)
 
-This repository defines a deliberately small Azure Policy contract in Terraform:
+This repository provides a composable, version-pinned Terraform reference for a minimal Azure platform footprint and AKS target, plus a scoped Azure Policy governance contract.
 
-- **Required metadata**: resources must include required tags.
-- **Secure configuration**: storage accounts must enforce HTTPS-only traffic.
+## What this deploys
 
-This is intentionally not a full compliance baseline.
+- Resource group
+- Virtual network with AKS subnet
+- Log Analytics workspace
+- AKS cluster (system-assigned managed identity)
+- Subscription-level Azure Policy assignments for required metadata tags and storage HTTPS-only enforcement
 
-## Policy scope, effects, and enforcement
-
-All policies are assigned at the **subscription scope** (`var.subscription_id`).
-
-| Control | Scope | Effect |
-| --- | --- | --- |
-| Required tags (`owner`, `costcenter` by default) | Subscription | `deny` |
-| Storage HTTPS-only | Subscription | `deny` |
-
-Assignments support `var.enforcement_mode`:
-
-- `Default` → enforced
-- `DoNotEnforce` → audit/simulation mode while still evaluating compliance
-
-## Exception model (time-bounded)
-
-Use `var.policy_exemptions` to request exemptions with:
-
-- `assignment_id`
-- `requested_by`
-- `justification`
-- `review_by`
-- `expires_on`
-
-Terraform validation enforces that exemptions:
-
-- have a valid RFC3339 UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`)
-- include justification and review owner metadata
-
-Exception process requirement:
-
-- requests should set a future `expires_on` (**manual operational review check**, not Terraform input validation)
-- expiry should be limited to 90 days (**manual operational review check**; renewal requires new review/approval)
-
-Exemptions are created as `azurerm_subscription_policy_exemption` resources and carry request/review metadata.
-
-## Policy evaluation
-
-Azure Policy continuously evaluates assigned resources and new deployments against the assignments. Deny effects block non-compliant creates/updates. In `DoNotEnforce` mode, compliance is still evaluated without blocking.
-
-## Testing
-
-### Standard validation
+## Quick start (safe, no credentials committed)
 
 ```bash
-terraform init -backend=false
+cp examples/safe.tfvars terraform.tfvars
+terraform init -backend=false -input=false -lockfile=readonly
+terraform fmt -check -recursive
 terraform validate
 ```
 
-### Negative validation (non-compliant example)
+> The `examples/safe.tfvars` file intentionally uses non-sensitive baseline defaults.
 
-The fixtures include intentionally non-compliant changes:
+## Inputs
 
-- `tests/non_compliant_exemption/main.tf` removes `costcenter` from required metadata tags.
-- `tests/non_compliant_exemption_timestamp/main.tf` uses an invalid exemption expiry timestamp.
-- `tests/non_compliant_exemption_semantic_timestamp/main.tf` uses an impossible date/time despite matching timestamp shape.
-- `tests/non_compliant_exemption_metadata/main.tf` uses blank exemption review metadata.
-- `tests/non_compliant_exemption_key/main.tf` uses an invalid exemption key format.
-- `tests/non_compliant_exemption_scope/main.tf` uses a non-subscription policy assignment ID for an exemption.
+Key AKS parameters are documented in `variables.tf`, including:
+- region (`location`)
+- naming (`name_prefix`)
+- environment (`environment`)
+- sizing (`node_count`, `node_vm_size`)
+- cluster service networking (`service_cidr`, `dns_service_ip`)
+- API server restriction (`authorized_ip_ranges`, default placeholder CIDR that must be replaced before deployment)
 
-Run:
+Governance inputs include:
+- optional subscription override (`subscription_id`)
+- required tags baseline (`required_tags`, default includes `owner` and `costcenter`)
+- policy assignment enforcement mode (`enforcement_mode`)
+- structured exemptions (`policy_exemptions`)
+
+## Governance contract (explicitly scoped)
+
+Controls are intentionally limited and not a full compliance baseline:
+- required resource metadata tags
+- storage accounts requiring HTTPS-only traffic
+
+Policy assignments are created at subscription scope and support:
+- `Default` (enforced)
+- `DoNotEnforce` (evaluate without deny enforcement)
+
+Exemption input validation enforces:
+- RFC3339 UTC timestamp format plus semantic timestamp parsing
+- non-empty review metadata (`review_by`, `justification`)
+- key format (`^[a-z0-9-]+$`)
+- subscription policy assignment ID shape
+
+## Policy testing
+
+Run standard checks:
 
 ```bash
-./tests/validate_non_compliant.sh
+terraform init -backend=false -input=false -lockfile=readonly
+terraform validate
 ```
 
-The script **passes only when Terraform rejects** that invalid input, proving non-compliant governance changes are caught in pre-merge validation.
+Run negative governance fixtures:
+
+```bash
+bash ./tests/validate_non_compliant.sh
+```
+
+The negative suite verifies non-compliant examples are rejected before merge.
+
+## Remote state requirements (before live deployment)
+
+Configure a remote backend (for example, Azure Storage) before any shared/live use. Typical setup:
+
+- dedicated state resource group and storage account
+- private container for state file
+- state locking enabled (Azure Blob lease)
+- restricted access (private endpoints/firewall as needed)
+
+Example backend block (fill with your own values):
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "REPLACE_ME"
+    storage_account_name = "REPLACE_ME"
+    container_name       = "tfstate"
+    key                  = "platform/aks.tfstate"
+  }
+}
+```
+
+## Identity assumptions
+
+- CI validation on pull requests is credential-free and does **not** apply.
+- Optional plan generation can use Azure federated identity (OIDC) on `workflow_dispatch`.
+- The plan job is opt-in (`run_plan=true`) and requires repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`.
+- Live deployment is intentionally out of scope for routine CI and must be human-approved.
+
+## Network and security assumptions
+
+- AKS runs in a dedicated subnet in a dedicated VNet.
+- Baseline NSG/UDR/policy hardening is expected to be layered in environment-specific compositions.
+- The reference is intentionally minimal and should be extended for production controls (private cluster, network policies, workload identity, policy enforcement).
+
+## Cost considerations
+
+Main recurring drivers:
+- AKS node pool VM size/count
+- Log Analytics ingestion/retention
+- Regional pricing variance
+
+Use conservative node sizing defaults first and tune upward based on measured workloads.
+
+## Teardown
+
+For non-production environments only:
+
+```bash
+terraform init -input=false # include backend config flags when using remote state
+terraform destroy -var-file=examples/safe.tfvars
+```
+
+Always confirm no shared/critical resources are attached before destroy.
+
+## ADRs
+
+Design decisions and unresolved choices are tracked in:
+- `docs/adr/0001-governance-policy-contract.md`
+- `docs/adr/0001-aks-reference-unresolved-decisions.md`

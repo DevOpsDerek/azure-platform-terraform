@@ -1,18 +1,83 @@
-terraform {
-  required_version = ">= 1.6.0"
+locals {
+  base_name = "${var.name_prefix}-${var.environment}"
+  tags = merge(
+    {
+      environment = var.environment
+      managed_by  = "terraform"
+    },
+    var.tags
+  )
 
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 4.0"
-    }
-  }
+  governance_subscription_id = coalesce(var.subscription_id, data.azurerm_client_config.current.subscription_id)
 }
 
-provider "azurerm" {
-  features {}
+data "azurerm_client_config" "current" {}
 
-  subscription_id = var.subscription_id
+resource "azurerm_resource_group" "platform" {
+  name     = "rg-${local.base_name}"
+  location = var.location
+  tags     = local.tags
+}
+
+resource "azurerm_virtual_network" "platform" {
+  name                = "vnet-${local.base_name}"
+  location            = azurerm_resource_group.platform.location
+  resource_group_name = azurerm_resource_group.platform.name
+  address_space       = var.address_space
+  tags                = local.tags
+}
+
+resource "azurerm_subnet" "aks" {
+  name                 = "snet-aks"
+  resource_group_name  = azurerm_resource_group.platform.name
+  virtual_network_name = azurerm_virtual_network.platform.name
+  address_prefixes     = [var.aks_subnet_cidr]
+}
+
+resource "azurerm_log_analytics_workspace" "platform" {
+  name                = "log-${local.base_name}"
+  location            = azurerm_resource_group.platform.location
+  resource_group_name = azurerm_resource_group.platform.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+  tags                = local.tags
+}
+
+resource "azurerm_kubernetes_cluster" "platform" { #tfsec:ignore:azure-container-limit-authorized-ips Provider v4 uses api_server_access_profile instead of the legacy top-level argument. #tfsec:ignore:azure-container-configured-network-policy Network policy mode is intentionally left open pending ADR decisions.
+  name                              = "aks-${local.base_name}"
+  location                          = azurerm_resource_group.platform.location
+  resource_group_name               = azurerm_resource_group.platform.name
+  dns_prefix                        = "dns-${local.base_name}"
+  kubernetes_version                = var.kubernetes_version
+  role_based_access_control_enabled = true
+  sku_tier                          = "Free"
+  tags                              = local.tags
+
+  default_node_pool {
+    name           = "system"
+    node_count     = var.node_count
+    vm_size        = var.node_vm_size
+    vnet_subnet_id = azurerm_subnet.aks.id
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  oms_agent {
+    log_analytics_workspace_id = azurerm_log_analytics_workspace.platform.id
+  }
+
+  network_profile {
+    network_plugin    = "azure"
+    service_cidr      = var.service_cidr
+    dns_service_ip    = var.dns_service_ip
+    load_balancer_sku = "standard"
+  }
+
+  api_server_access_profile {
+    authorized_ip_ranges = var.authorized_ip_ranges
+  }
 }
 
 resource "azurerm_policy_definition" "required_tags" {
@@ -81,7 +146,7 @@ resource "azurerm_subscription_policy_assignment" "required_tags" {
   for_each = azurerm_policy_definition.required_tags
 
   name                 = "required-tag-${substr(each.key, 0, 40)}-${substr(sha1(each.key), 0, 8)}"
-  subscription_id      = var.subscription_id
+  subscription_id      = local.governance_subscription_id
   policy_definition_id = each.value.id
   display_name         = "Require ${each.key} tag"
   enforce              = var.enforcement_mode == "Default"
@@ -89,14 +154,14 @@ resource "azurerm_subscription_policy_assignment" "required_tags" {
 
 resource "azurerm_subscription_policy_assignment" "storage_https_only" {
   name                 = "require-storage-https-only"
-  subscription_id      = var.subscription_id
+  subscription_id      = local.governance_subscription_id
   policy_definition_id = azurerm_policy_definition.storage_https_only.id
   display_name         = "Require HTTPS-only for storage accounts"
   enforce              = var.enforcement_mode == "Default"
 }
 
 locals {
-  assignment_ids = merge(
+  policy_assignment_ids = merge(
     { for tag, assignment in azurerm_subscription_policy_assignment.required_tags : "required_tag_${tag}" => assignment.id },
     { storage_https_only = azurerm_subscription_policy_assignment.storage_https_only.id }
   )
@@ -106,7 +171,7 @@ resource "azurerm_subscription_policy_exemption" "this" {
   for_each = var.policy_exemptions
 
   name                 = "exemption-${substr(each.key, 0, 40)}-${substr(sha1(each.key), 0, 8)}"
-  subscription_id      = var.subscription_id
+  subscription_id      = local.governance_subscription_id
   policy_assignment_id = each.value.assignment_id
   exemption_category   = "Waiver"
   display_name         = each.value.display_name
@@ -117,9 +182,4 @@ resource "azurerm_subscription_policy_exemption" "this" {
     justification = each.value.justification
     review_by     = each.value.review_by
   })
-}
-
-output "policy_assignment_ids" {
-  description = "Policy assignment IDs that can be used when creating policy exemptions."
-  value       = local.assignment_ids
 }
