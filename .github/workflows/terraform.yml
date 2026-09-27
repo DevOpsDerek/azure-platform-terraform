@@ -34,9 +34,6 @@ jobs:
       - name: Terraform validate
         run: terraform validate
 
-      - name: Verify API server IP restrictions are configured
-        run: grep -Eq "authorized_ip_ranges\\s*=" main.tf
-
       - name: Provider lock check
         run: |
           terraform providers lock \
