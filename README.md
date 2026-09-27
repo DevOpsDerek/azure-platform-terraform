@@ -18,7 +18,7 @@ terraform fmt -check -recursive
 terraform validate
 ```
 
-> The `examples/safe.tfvars` file intentionally uses placeholders and non-sensitive defaults.
+> The `examples/safe.tfvars` file intentionally uses non-sensitive baseline defaults.
 
 ## Inputs
 
