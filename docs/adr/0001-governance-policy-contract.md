@@ -32,13 +32,13 @@ Each exemption request must include:
 - `review_by`
 - `expires_on`
 
-`expires_on` is validated as:
+`expires_on` and exemption metadata are validated as:
 
-- valid RFC3339 timestamp
+- valid RFC3339 UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`)
 - exemption metadata includes review and justification fields
 
 This implements a time-bounded waiver model with explicit review metadata.
-Operationally, exemption requests must use future expiries and are expected to be limited to 90 days, with renewal requiring review.
+Operationally, exemption requests should use future expiries and are expected to be limited to 90 days, with renewal requiring review.
 
 ## Policy evaluation and testing
 

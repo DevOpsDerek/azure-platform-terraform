@@ -40,10 +40,10 @@ variable "policy_exemptions" {
   validation {
     condition = alltrue([
       for exemption in values(var.policy_exemptions) :
-      can(formatdate("YYYY-MM-DD", exemption.expires_on)) &&
+      can(regex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", exemption.expires_on)) &&
       length(trimspace(exemption.review_by)) > 0 &&
       length(trimspace(exemption.justification)) > 0
     ])
-    error_message = "Each policy exemption must include a valid RFC3339 expires_on value, a non-empty justification, and a non-empty review_by."
+    error_message = "Each policy exemption must include a valid RFC3339 UTC expires_on value (YYYY-MM-DDTHH:MM:SSZ), a non-empty justification, and a non-empty review_by."
   }
 }

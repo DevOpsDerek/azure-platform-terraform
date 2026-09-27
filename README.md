@@ -31,15 +31,15 @@ Use `var.policy_exemptions` to request exemptions with:
 - `review_by`
 - `expires_on`
 
-Validation enforces that exemptions:
+Terraform validation enforces that exemptions:
 
-- have a valid RFC3339 timestamp
+- have a valid RFC3339 UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`)
 - include justification and review owner metadata
 
 Exception process requirement:
 
-- requests must set a future `expires_on`
-- expiry should be limited to 90 days (renewal requires new review/approval)
+- requests should set a future `expires_on` (operational review check)
+- expiry should be limited to 90 days (operational review check; renewal requires new review/approval)
 
 Exemptions are created as `azurerm_subscription_policy_exemption` resources and carry request/review metadata.
 
