@@ -65,6 +65,7 @@ The fixtures include intentionally non-compliant changes:
 - `tests/non_compliant_exemption_semantic_timestamp/main.tf` uses an impossible date/time despite matching timestamp shape.
 - `tests/non_compliant_exemption_metadata/main.tf` uses blank exemption review metadata.
 - `tests/non_compliant_exemption_key/main.tf` uses an invalid exemption key format.
+- `tests/non_compliant_exemption_scope/main.tf` uses a non-subscription policy assignment ID for an exemption.
 
 Run:
 

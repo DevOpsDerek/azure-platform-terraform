@@ -48,7 +48,8 @@ run_expected_failure() {
 run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption" "required_tags must include both 'owner' and 'costcenter'" "var.required_tags"
 run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_timestamp" "Each policy exemption must include a valid RFC3339 UTC expires_on value" "var.policy_exemptions"
 run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_semantic_timestamp" "Each policy exemption must include a valid RFC3339 UTC expires_on value" "var.policy_exemptions"
-run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_metadata" "Each policy exemption must include a valid RFC3339 UTC expires_on value" "var.policy_exemptions"
+run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_metadata" "Each policy exemption must include a non-empty justification and a non-empty" "var.policy_exemptions"
 run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_key" "Each policy_exemptions key must use lowercase letters, numbers, and hyphens" "var.policy_exemptions"
+run_expected_failure "${SCRIPT_DIR}/non_compliant_exemption_scope" "Each policy exemption assignment_id must reference a subscription policy" "var.policy_exemptions"
 
 echo "Negative validation succeeded: non-compliant governance fixtures were rejected."

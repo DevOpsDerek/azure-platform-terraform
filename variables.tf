@@ -48,11 +48,18 @@ variable "policy_exemptions" {
     condition = alltrue([
       for exemption in values(var.policy_exemptions) :
       can(regex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", exemption.expires_on)) &&
-      can(timecmp(exemption.expires_on, exemption.expires_on)) &&
+      can(timecmp(exemption.expires_on, exemption.expires_on))
+    ])
+    error_message = "Each policy exemption must include a valid RFC3339 UTC expires_on value (YYYY-MM-DDTHH:MM:SSZ)."
+  }
+
+  validation {
+    condition = alltrue([
+      for exemption in values(var.policy_exemptions) :
       length(trimspace(exemption.review_by)) > 0 &&
       length(trimspace(exemption.justification)) > 0
     ])
-    error_message = "Each policy exemption must include a valid RFC3339 UTC expires_on value (YYYY-MM-DDTHH:MM:SSZ), a non-empty justification, and a non-empty review_by."
+    error_message = "Each policy exemption must include a non-empty justification and a non-empty review_by."
   }
 
   validation {
@@ -60,5 +67,13 @@ variable "policy_exemptions" {
       for key in keys(var.policy_exemptions) : can(regex("^[a-z0-9-]+$", key))
     ])
     error_message = "Each policy_exemptions key must use lowercase letters, numbers, and hyphens only."
+  }
+
+  validation {
+    condition = alltrue([
+      for exemption in values(var.policy_exemptions) :
+      can(regex("^/subscriptions/[^/]+/providers/Microsoft.Authorization/policyAssignments/[^/]+$", exemption.assignment_id))
+    ])
+    error_message = "Each policy exemption assignment_id must reference a subscription policy assignment ID."
   }
 }
