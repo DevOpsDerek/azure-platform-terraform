@@ -4,7 +4,9 @@ terraform {
 
 module "governance" {
   source          = "../.."
-  subscription_id = "00000000-0000-0000-0000-000000000000"
+  subscription_id = "/subscriptions/00000000-0000-0000-0000-000000000000"
+
+  required_tags = ["owner", "costcenter"]
 
   policy_exemptions = {
     "invalid key" = {

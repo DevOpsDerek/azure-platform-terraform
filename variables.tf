@@ -71,7 +71,7 @@ variable "tags" {
 }
 
 variable "subscription_id" {
-  description = "Optional Azure subscription ID override for governance policy assignments and exemptions. This must match the AzureRM provider subscription because custom policy definitions are created at subscription scope."
+  description = "Optional Azure subscription resource ID override for governance policy assignments and exemptions (`/subscriptions/<guid>`). This must match the AzureRM provider subscription because custom policy definitions are created at subscription scope."
   type        = string
   default     = null
   nullable    = true

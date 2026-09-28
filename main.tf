@@ -10,7 +10,9 @@ locals {
     var.tags
   )
 
-  governance_subscription_id = coalesce(var.subscription_id, data.azurerm_client_config.current.subscription_id)
+  governance_subscription_input = coalesce(var.subscription_id, data.azurerm_client_config.current.subscription_id)
+  governance_subscription_id    = startswith(local.governance_subscription_input, "/subscriptions/") ? local.governance_subscription_input : "/subscriptions/${local.governance_subscription_input}"
+  governance_subscription_guid  = split("/", trimprefix(local.governance_subscription_id, "/"))[1]
 }
 
 data "azurerm_client_config" "current" {}
@@ -155,7 +157,7 @@ resource "azurerm_subscription_policy_assignment" "required_tags" {
 
   lifecycle {
     precondition {
-      condition     = var.subscription_id == null || var.subscription_id == data.azurerm_client_config.current.subscription_id
+      condition     = var.subscription_id == null || local.governance_subscription_guid == data.azurerm_client_config.current.subscription_id
       error_message = "subscription_id must match the AzureRM provider subscription when creating subscription-scoped custom policy definitions and assignments."
     }
   }
@@ -170,7 +172,7 @@ resource "azurerm_subscription_policy_assignment" "storage_https_only" {
 
   lifecycle {
     precondition {
-      condition     = var.subscription_id == null || var.subscription_id == data.azurerm_client_config.current.subscription_id
+      condition     = var.subscription_id == null || local.governance_subscription_guid == data.azurerm_client_config.current.subscription_id
       error_message = "subscription_id must match the AzureRM provider subscription when creating subscription-scoped custom policy definitions and assignments."
     }
   }
@@ -201,7 +203,7 @@ resource "azurerm_subscription_policy_exemption" "this" {
 
   lifecycle {
     precondition {
-      condition     = lower(split("/", trimprefix(each.value.assignment_id, "/"))[1]) == lower(local.governance_subscription_id)
+      condition     = lower(split("/", trimprefix(each.value.assignment_id, "/"))[1]) == lower(local.governance_subscription_guid)
       error_message = "Each policy exemption assignment_id must reference a policy assignment in the same subscription as the module's governance resources."
     }
   }
