@@ -19,7 +19,7 @@ terraform fmt -check -recursive
 terraform validate
 ```
 
-> The `examples/safe.tfvars` file intentionally uses non-sensitive baseline defaults.
+> The `examples/safe.tfvars` file intentionally uses non-sensitive baseline defaults, including override-ready placeholder values for the enforced `owner` and `costcenter` tags.
 
 ## Inputs
 
@@ -32,7 +32,7 @@ Key AKS parameters are documented in `variables.tf`, including:
 - API server restriction (`authorized_ip_ranges`, default placeholder CIDR that must be replaced before deployment)
 
 Governance inputs include:
-- optional subscription override (`subscription_id`)
+- optional subscription override (`subscription_id`) that must match the AzureRM provider subscription for custom policy definitions
 - required tags baseline (`required_tags`, default includes `owner` and `costcenter`)
 - policy assignment enforcement mode (`enforcement_mode`)
 - structured exemptions (`policy_exemptions`)
@@ -49,7 +49,7 @@ Policy assignments are created at subscription scope and support:
 
 Exemption input validation enforces:
 - RFC3339 UTC timestamp format plus semantic timestamp parsing
-- non-empty review metadata (`review_by`, `justification`)
+- non-empty exemption metadata (`requested_by`, `review_by`, `justification`)
 - key format (`^[a-z0-9-]+$`)
 - subscription policy assignment ID shape
 
@@ -128,5 +128,5 @@ Always confirm no shared/critical resources are attached before destroy.
 ## ADRs
 
 Design decisions and unresolved choices are tracked in:
-- `docs/adr/0001-governance-policy-contract.md`
+- `docs/adr/0002-governance-policy-contract.md`
 - `docs/adr/0001-aks-reference-unresolved-decisions.md`

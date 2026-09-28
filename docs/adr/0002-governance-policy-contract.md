@@ -1,4 +1,4 @@
-# ADR 0001: Terraform-managed Azure governance policy contract
+# ADR 0002: Terraform-managed Azure governance policy contract
 
 ## Status
 
@@ -35,7 +35,7 @@ Each exemption request must include:
 `expires_on` and exemption metadata are validated as:
 
 - valid RFC3339 UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`)
-- exemption metadata includes review and justification fields
+- exemption metadata includes requester, review, and justification fields
 
 This implements a time-bounded waiver model with explicit review metadata.
 Operationally, exemption requests should use future expiries and are expected to be limited to 90 days, with renewal requiring review.

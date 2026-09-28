@@ -4,6 +4,8 @@ locals {
     {
       environment = var.environment
       managed_by  = "terraform"
+      owner       = "platform-team"
+      costcenter  = "shared-platform"
     },
     var.tags
   )
@@ -83,7 +85,7 @@ resource "azurerm_kubernetes_cluster" "platform" { #tfsec:ignore:azure-container
 resource "azurerm_policy_definition" "required_tags" {
   for_each = var.required_tags
 
-  name         = "require-tag-${each.value}"
+  name         = "require-tag-${substr(each.value, 0, 40)}-${substr(sha1(each.value), 0, 8)}"
   policy_type  = "Custom"
   mode         = "Indexed"
   display_name = "Require ${each.value} tag on resources"
@@ -150,6 +152,13 @@ resource "azurerm_subscription_policy_assignment" "required_tags" {
   policy_definition_id = each.value.id
   display_name         = "Require ${each.key} tag"
   enforce              = var.enforcement_mode == "Default"
+
+  lifecycle {
+    precondition {
+      condition     = var.subscription_id == null || var.subscription_id == data.azurerm_client_config.current.subscription_id
+      error_message = "subscription_id must match the AzureRM provider subscription when creating subscription-scoped custom policy definitions and assignments."
+    }
+  }
 }
 
 resource "azurerm_subscription_policy_assignment" "storage_https_only" {
@@ -158,6 +167,13 @@ resource "azurerm_subscription_policy_assignment" "storage_https_only" {
   policy_definition_id = azurerm_policy_definition.storage_https_only.id
   display_name         = "Require HTTPS-only for storage accounts"
   enforce              = var.enforcement_mode == "Default"
+
+  lifecycle {
+    precondition {
+      condition     = var.subscription_id == null || var.subscription_id == data.azurerm_client_config.current.subscription_id
+      error_message = "subscription_id must match the AzureRM provider subscription when creating subscription-scoped custom policy definitions and assignments."
+    }
+  }
 }
 
 locals {

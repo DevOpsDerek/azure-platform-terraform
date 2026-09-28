@@ -65,13 +65,13 @@ variable "authorized_ip_ranges" {
 }
 
 variable "tags" {
-  description = "Tags applied to all resources."
+  description = "Tags applied to all resources. The module always applies baseline environment, managed_by, owner, and costcenter tags; set matching keys here to override the default owner/costcenter values."
   type        = map(string)
   default     = {}
 }
 
 variable "subscription_id" {
-  description = "Optional Azure subscription ID override for governance policy assignments and exemptions."
+  description = "Optional Azure subscription ID override for governance policy assignments and exemptions. This must match the AzureRM provider subscription because custom policy definitions are created at subscription scope."
   type        = string
   default     = null
   nullable    = true
@@ -130,10 +130,11 @@ variable "policy_exemptions" {
   validation {
     condition = alltrue([
       for exemption in values(var.policy_exemptions) :
+      length(trimspace(exemption.requested_by)) > 0 &&
       length(trimspace(exemption.review_by)) > 0 &&
       length(trimspace(exemption.justification)) > 0
     ])
-    error_message = "Each policy exemption must include a non-empty justification and a non-empty review_by."
+    error_message = "Each policy exemption must include non-empty requested_by, justification, and review_by values."
   }
 
   validation {
