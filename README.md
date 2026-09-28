@@ -1,6 +1,6 @@
-# Azure Platform Terraform Reference (AKS)
+# Azure Platform Terraform Reference (AKS + Governance)
 
-This repository provides a composable, version-pinned Terraform reference for a minimal Azure platform footprint and AKS target.
+This repository provides a composable, version-pinned Terraform reference for a minimal Azure platform footprint and AKS target, plus a scoped Azure Policy governance contract.
 
 ## What this deploys
 
@@ -8,6 +8,7 @@ This repository provides a composable, version-pinned Terraform reference for a 
 - Virtual network with AKS subnet
 - Log Analytics workspace
 - AKS cluster (system-assigned managed identity)
+- Subscription-level Azure Policy assignments for required metadata tags and storage HTTPS-only enforcement
 
 ## Quick start (safe, no credentials committed)
 
@@ -18,17 +19,58 @@ terraform fmt -check -recursive
 terraform validate
 ```
 
-> The `examples/safe.tfvars` file intentionally uses non-sensitive baseline defaults.
+> The `examples/safe.tfvars` file intentionally uses non-sensitive baseline defaults, including override-ready placeholder values for the enforced `owner` and `costcenter` tags.
 
 ## Inputs
 
-Key parameters are documented in `variables.tf`, including:
+Key AKS parameters are documented in `variables.tf`, including:
 - region (`location`)
 - naming (`name_prefix`)
 - environment (`environment`)
 - sizing (`node_count`, `node_vm_size`)
 - cluster service networking (`service_cidr`, `dns_service_ip`)
 - API server restriction (`authorized_ip_ranges`, default placeholder CIDR that must be replaced before deployment)
+
+Governance inputs include:
+- optional subscription override (`subscription_id`) for governance resources, using either a bare GUID or `/subscriptions/<guid>`
+- required tags baseline (`required_tags`, default includes `owner` and `costcenter`)
+- policy assignment enforcement mode (`enforcement_mode`)
+- structured exemptions (`policy_exemptions`)
+
+## Governance contract (explicitly scoped)
+
+Controls are intentionally limited and not a full compliance baseline:
+- required resource metadata tags
+- storage accounts requiring HTTPS-only traffic
+
+Policy assignments are created at subscription scope and support:
+- `Default` (enforced)
+- `DoNotEnforce` (evaluate without deny enforcement)
+
+Exemption input validation enforces:
+- RFC3339 UTC timestamp format plus semantic timestamp parsing
+- non-empty exemption metadata (`requested_by`, `review_by`, `justification`)
+- key format (`^[a-z0-9-]+$`)
+- subscription policy assignment ID shape
+- same-subscription checks against `subscription_id` when an override is provided
+- runtime same-subscription safeguards against the effective governance provider subscription during planning/apply
+
+## Policy testing
+
+Run standard checks:
+
+```bash
+terraform init -backend=false -input=false -lockfile=readonly
+terraform validate
+```
+
+Run negative governance fixtures:
+
+```bash
+bash ./tests/validate_non_compliant.sh
+```
+
+The negative suite verifies non-compliant examples are rejected before merge.
 
 ## Remote state requirements (before live deployment)
 
@@ -87,5 +129,6 @@ Always confirm no shared/critical resources are attached before destroy.
 
 ## ADRs
 
-Unresolved design choices are tracked in:
+Design decisions and unresolved choices are tracked in:
+- `docs/adr/0002-governance-policy-contract.md`
 - `docs/adr/0001-aks-reference-unresolved-decisions.md`

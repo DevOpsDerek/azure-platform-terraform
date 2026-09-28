@@ -12,3 +12,9 @@ terraform {
 provider "azurerm" {
   features {}
 }
+
+provider "azurerm" {
+  alias = "governance"
+  features {}
+  subscription_id = var.subscription_id == null ? null : replace(var.subscription_id, "/subscriptions/", "")
+}

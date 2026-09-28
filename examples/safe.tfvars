@@ -9,4 +9,7 @@ aks_subnet_cidr      = "10.10.0.0/24"
 service_cidr         = "10.240.0.0/16"
 dns_service_ip       = "10.240.0.10"
 authorized_ip_ranges = ["198.51.100.10/32"]
-tags                 = {}
+tags = {
+  owner      = "platform-team"
+  costcenter = "shared-platform"
+}

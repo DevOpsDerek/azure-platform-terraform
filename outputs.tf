@@ -12,3 +12,8 @@ output "aks_node_resource_group" {
   description = "AKS-managed node resource group."
   value       = azurerm_kubernetes_cluster.platform.node_resource_group
 }
+
+output "policy_assignment_ids" {
+  description = "Policy assignment IDs that can be used when creating policy exemptions."
+  value       = local.policy_assignment_ids
+}

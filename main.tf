@@ -4,9 +4,18 @@ locals {
     {
       environment = var.environment
       managed_by  = "terraform"
+      owner       = "platform-team"
+      costcenter  = "shared-platform"
     },
     var.tags
   )
+
+  governance_subscription_guid = var.subscription_id == null ? data.azurerm_client_config.governance.subscription_id : replace(var.subscription_id, "/subscriptions/", "")
+  governance_subscription_id   = "/subscriptions/${local.governance_subscription_guid}"
+}
+
+data "azurerm_client_config" "governance" {
+  provider = azurerm.governance
 }
 
 resource "azurerm_resource_group" "platform" {
@@ -74,5 +83,127 @@ resource "azurerm_kubernetes_cluster" "platform" { #tfsec:ignore:azure-container
   api_server_access_profile {
     authorized_ip_ranges = var.authorized_ip_ranges
   }
+}
 
+resource "azurerm_policy_definition" "required_tags" {
+  provider = azurerm.governance
+  for_each = var.required_tags
+
+  name         = "require-tag-${substr(each.value, 0, 40)}-${substr(sha1(each.value), 0, 8)}"
+  policy_type  = "Custom"
+  mode         = "Indexed"
+  display_name = "Require ${each.value} tag on resources"
+  description  = "Deny resource creation when the required tag '${each.value}' is missing."
+
+  metadata = jsonencode({
+    category = "Platform Governance"
+  })
+
+  policy_rule = jsonencode({
+    if = {
+      allOf = [
+        {
+          field   = "type"
+          notLike = "Microsoft.Resources/subscriptions/resourceGroups"
+        },
+        {
+          field  = "[concat('tags[', '${each.value}', ']')]"
+          exists = false
+        }
+      ]
+    }
+    then = {
+      effect = "deny"
+    }
+  })
+}
+
+resource "azurerm_policy_definition" "storage_https_only" {
+  provider     = azurerm.governance
+  name         = "storage-require-https-only"
+  policy_type  = "Custom"
+  mode         = "Indexed"
+  display_name = "Require HTTPS-only for storage accounts"
+  description  = "Deny storage accounts that do not enforce HTTPS-only traffic."
+
+  metadata = jsonencode({
+    category = "Platform Governance"
+  })
+
+  policy_rule = jsonencode({
+    if = {
+      allOf = [
+        {
+          field  = "type"
+          equals = "Microsoft.Storage/storageAccounts"
+        },
+        {
+          field     = "Microsoft.Storage/storageAccounts/supportsHttpsTrafficOnly"
+          notEquals = true
+        }
+      ]
+    }
+    then = {
+      effect = "deny"
+    }
+  })
+}
+
+resource "azurerm_subscription_policy_assignment" "required_tags" {
+  provider = azurerm.governance
+  for_each = azurerm_policy_definition.required_tags
+
+  name                 = "required-tag-${substr(each.key, 0, 40)}-${substr(sha1(each.key), 0, 8)}"
+  subscription_id      = local.governance_subscription_id
+  policy_definition_id = each.value.id
+  display_name         = "Require ${each.key} tag"
+  enforce              = var.enforcement_mode == "Default"
+
+}
+
+resource "azurerm_subscription_policy_assignment" "storage_https_only" {
+  provider             = azurerm.governance
+  name                 = "require-storage-https-only"
+  subscription_id      = local.governance_subscription_id
+  policy_definition_id = azurerm_policy_definition.storage_https_only.id
+  display_name         = "Require HTTPS-only for storage accounts"
+  enforce              = var.enforcement_mode == "Default"
+}
+
+locals {
+  policy_assignment_ids = merge(
+    { for tag, assignment in azurerm_subscription_policy_assignment.required_tags : "required_tag_${tag}" => assignment.id },
+    { storage_https_only = azurerm_subscription_policy_assignment.storage_https_only.id }
+  )
+}
+
+resource "terraform_data" "policy_exemption_subscription_guard" {
+  for_each = var.policy_exemptions
+
+  lifecycle {
+    precondition {
+      condition     = lower(trimprefix(replace(split("/providers/", each.value.assignment_id)[0], "/subscriptions/", ""), "/")) == lower(local.governance_subscription_guid)
+      error_message = "Each policy exemption assignment_id must reference a policy assignment in the same subscription as the module's governance resources."
+    }
+  }
+}
+
+resource "azurerm_subscription_policy_exemption" "this" {
+  provider = azurerm.governance
+  for_each = var.policy_exemptions
+
+  name                 = "exemption-${substr(each.key, 0, 40)}-${substr(sha1(each.key), 0, 8)}"
+  subscription_id      = local.governance_subscription_id
+  policy_assignment_id = each.value.assignment_id
+  exemption_category   = "Waiver"
+  display_name         = each.value.display_name
+  expires_on           = each.value.expires_on
+
+  metadata = jsonencode({
+    requested_by  = each.value.requested_by
+    justification = each.value.justification
+    review_by     = each.value.review_by
+  })
+
+  depends_on = [terraform_data.policy_exemption_subscription_guard]
 }
