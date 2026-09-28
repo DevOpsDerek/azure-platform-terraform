@@ -198,4 +198,11 @@ resource "azurerm_subscription_policy_exemption" "this" {
     justification = each.value.justification
     review_by     = each.value.review_by
   })
+
+  lifecycle {
+    precondition {
+      condition     = lower(regex("^/subscriptions/([^/]+)/", each.value.assignment_id)[0]) == lower(local.governance_subscription_id)
+      error_message = "Each policy exemption assignment_id must reference a policy assignment in the same subscription as the module's governance resources."
+    }
+  }
 }
