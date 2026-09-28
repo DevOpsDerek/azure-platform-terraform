@@ -177,6 +177,17 @@ locals {
   )
 }
 
+resource "terraform_data" "policy_exemption_subscription_guard" {
+  for_each = var.policy_exemptions
+
+  lifecycle {
+    precondition {
+      condition     = lower(trimprefix(replace(split("/providers/", each.value.assignment_id)[0], "/subscriptions/", ""), "/")) == lower(local.governance_subscription_guid)
+      error_message = "Each policy exemption assignment_id must reference a policy assignment in the same subscription as the module's governance resources."
+    }
+  }
+}
+
 resource "azurerm_subscription_policy_exemption" "this" {
   provider = azurerm.governance
   for_each = var.policy_exemptions
@@ -194,10 +205,5 @@ resource "azurerm_subscription_policy_exemption" "this" {
     review_by     = each.value.review_by
   })
 
-  lifecycle {
-    precondition {
-      condition     = lower(trimprefix(replace(split("/providers/", each.value.assignment_id)[0], "/subscriptions/", ""), "/")) == lower(local.governance_subscription_guid)
-      error_message = "Each policy exemption assignment_id must reference a policy assignment in the same subscription as the module's governance resources."
-    }
-  }
+  depends_on = [terraform_data.policy_exemption_subscription_guard]
 }
