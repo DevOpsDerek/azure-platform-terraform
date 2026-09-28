@@ -32,7 +32,7 @@ Key AKS parameters are documented in `variables.tf`, including:
 - API server restriction (`authorized_ip_ranges`, default placeholder CIDR that must be replaced before deployment)
 
 Governance inputs include:
-- optional subscription override (`subscription_id`) in `/subscriptions/<guid>` format that must match the AzureRM provider subscription for custom policy definitions
+- optional subscription override (`subscription_id`) for governance resources, using either a bare GUID or `/subscriptions/<guid>`
 - required tags baseline (`required_tags`, default includes `owner` and `costcenter`)
 - policy assignment enforcement mode (`enforcement_mode`)
 - structured exemptions (`policy_exemptions`)
@@ -51,7 +51,7 @@ Exemption input validation enforces:
 - RFC3339 UTC timestamp format plus semantic timestamp parsing
 - non-empty exemption metadata (`requested_by`, `review_by`, `justification`)
 - key format (`^[a-z0-9-]+$`)
-- subscription policy assignment ID shape, with same-subscription enforcement when exemption resources are planned/applied
+- subscription policy assignment ID shape, plus same-subscription checks against `subscription_id` when an override is provided
 
 ## Policy testing
 

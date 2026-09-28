@@ -10,12 +10,13 @@ locals {
     var.tags
   )
 
-  governance_subscription_input = coalesce(var.subscription_id, data.azurerm_client_config.current.subscription_id)
-  governance_subscription_id    = startswith(local.governance_subscription_input, "/subscriptions/") ? local.governance_subscription_input : "/subscriptions/${local.governance_subscription_input}"
-  governance_subscription_guid  = replace(local.governance_subscription_id, "/subscriptions/", "")
+  governance_subscription_id   = "/subscriptions/${data.azurerm_client_config.governance.subscription_id}"
+  governance_subscription_guid = data.azurerm_client_config.governance.subscription_id
 }
 
-data "azurerm_client_config" "current" {}
+data "azurerm_client_config" "governance" {
+  provider = azurerm.governance
+}
 
 resource "azurerm_resource_group" "platform" {
   name     = "rg-${local.base_name}"
@@ -85,6 +86,7 @@ resource "azurerm_kubernetes_cluster" "platform" { #tfsec:ignore:azure-container
 }
 
 resource "azurerm_policy_definition" "required_tags" {
+  provider = azurerm.governance
   for_each = var.required_tags
 
   name         = "require-tag-${substr(each.value, 0, 40)}-${substr(sha1(each.value), 0, 8)}"
@@ -117,6 +119,7 @@ resource "azurerm_policy_definition" "required_tags" {
 }
 
 resource "azurerm_policy_definition" "storage_https_only" {
+  provider     = azurerm.governance
   name         = "storage-require-https-only"
   policy_type  = "Custom"
   mode         = "Indexed"
@@ -147,6 +150,7 @@ resource "azurerm_policy_definition" "storage_https_only" {
 }
 
 resource "azurerm_subscription_policy_assignment" "required_tags" {
+  provider = azurerm.governance
   for_each = azurerm_policy_definition.required_tags
 
   name                 = "required-tag-${substr(each.key, 0, 40)}-${substr(sha1(each.key), 0, 8)}"
@@ -155,27 +159,15 @@ resource "azurerm_subscription_policy_assignment" "required_tags" {
   display_name         = "Require ${each.key} tag"
   enforce              = var.enforcement_mode == "Default"
 
-  lifecycle {
-    precondition {
-      condition     = var.subscription_id == null || local.governance_subscription_guid == data.azurerm_client_config.current.subscription_id
-      error_message = "subscription_id must match the AzureRM provider subscription when creating subscription-scoped custom policy definitions and assignments."
-    }
-  }
 }
 
 resource "azurerm_subscription_policy_assignment" "storage_https_only" {
+  provider             = azurerm.governance
   name                 = "require-storage-https-only"
   subscription_id      = local.governance_subscription_id
   policy_definition_id = azurerm_policy_definition.storage_https_only.id
   display_name         = "Require HTTPS-only for storage accounts"
   enforce              = var.enforcement_mode == "Default"
-
-  lifecycle {
-    precondition {
-      condition     = var.subscription_id == null || local.governance_subscription_guid == data.azurerm_client_config.current.subscription_id
-      error_message = "subscription_id must match the AzureRM provider subscription when creating subscription-scoped custom policy definitions and assignments."
-    }
-  }
 }
 
 locals {
@@ -186,6 +178,7 @@ locals {
 }
 
 resource "azurerm_subscription_policy_exemption" "this" {
+  provider = azurerm.governance
   for_each = var.policy_exemptions
 
   name                 = "exemption-${substr(each.key, 0, 40)}-${substr(sha1(each.key), 0, 8)}"
@@ -203,7 +196,7 @@ resource "azurerm_subscription_policy_exemption" "this" {
 
   lifecycle {
     precondition {
-      condition     = lower(replace(split("/providers/", each.value.assignment_id)[0], "/subscriptions/", "")) == lower(local.governance_subscription_guid)
+      condition     = lower(trimprefix(replace(split("/providers/", each.value.assignment_id)[0], "/subscriptions/", ""), "/")) == lower(local.governance_subscription_guid)
       error_message = "Each policy exemption assignment_id must reference a policy assignment in the same subscription as the module's governance resources."
     }
   }

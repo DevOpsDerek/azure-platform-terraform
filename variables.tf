@@ -71,10 +71,18 @@ variable "tags" {
 }
 
 variable "subscription_id" {
-  description = "Optional Azure subscription resource ID override for governance policy assignments and exemptions (`/subscriptions/<guid>`). This must match the AzureRM provider subscription because custom policy definitions are created at subscription scope."
+  description = "Optional Azure subscription override for governance policy assignments and exemptions. Accepts either a bare subscription GUID or `/subscriptions/<guid>`."
   type        = string
   default     = null
   nullable    = true
+
+  validation {
+    condition = var.subscription_id == null || alltrue([
+      for exemption in values(var.policy_exemptions) :
+      lower(trimprefix(replace(split("/providers/", exemption.assignment_id)[0], "/subscriptions/", ""), "/")) == lower(replace(var.subscription_id, "/subscriptions/", ""))
+    ])
+    error_message = "Each policy exemption assignment_id must reference the same subscription as subscription_id."
+  }
 }
 
 variable "required_tags" {
@@ -151,4 +159,5 @@ variable "policy_exemptions" {
     ])
     error_message = "Each policy exemption assignment_id must reference a subscription policy assignment ID."
   }
+
 }
