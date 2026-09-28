@@ -12,7 +12,7 @@ locals {
 
   governance_subscription_input = coalesce(var.subscription_id, data.azurerm_client_config.current.subscription_id)
   governance_subscription_id    = startswith(local.governance_subscription_input, "/subscriptions/") ? local.governance_subscription_input : "/subscriptions/${local.governance_subscription_input}"
-  governance_subscription_guid  = split("/", trimprefix(local.governance_subscription_id, "/"))[1]
+  governance_subscription_guid  = replace(local.governance_subscription_id, "/subscriptions/", "")
 }
 
 data "azurerm_client_config" "current" {}
@@ -203,7 +203,7 @@ resource "azurerm_subscription_policy_exemption" "this" {
 
   lifecycle {
     precondition {
-      condition     = lower(split("/", trimprefix(each.value.assignment_id, "/"))[1]) == lower(local.governance_subscription_guid)
+      condition     = lower(replace(split("/providers/", each.value.assignment_id)[0], "/subscriptions/", "")) == lower(local.governance_subscription_guid)
       error_message = "Each policy exemption assignment_id must reference a policy assignment in the same subscription as the module's governance resources."
     }
   }
