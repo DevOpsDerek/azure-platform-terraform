@@ -10,8 +10,8 @@ locals {
     var.tags
   )
 
-  governance_subscription_id   = "/subscriptions/${data.azurerm_client_config.governance.subscription_id}"
-  governance_subscription_guid = data.azurerm_client_config.governance.subscription_id
+  governance_subscription_guid = var.subscription_id == null ? data.azurerm_client_config.governance.subscription_id : replace(var.subscription_id, "/subscriptions/", "")
+  governance_subscription_id   = "/subscriptions/${local.governance_subscription_guid}"
 }
 
 data "azurerm_client_config" "governance" {

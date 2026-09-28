@@ -51,7 +51,9 @@ Exemption input validation enforces:
 - RFC3339 UTC timestamp format plus semantic timestamp parsing
 - non-empty exemption metadata (`requested_by`, `review_by`, `justification`)
 - key format (`^[a-z0-9-]+$`)
-- subscription policy assignment ID shape, plus same-subscription checks against `subscription_id` when an override is provided
+- subscription policy assignment ID shape
+- same-subscription checks against `subscription_id` when an override is provided
+- runtime same-subscription safeguards against the effective governance provider subscription during planning/apply
 
 ## Policy testing
 
