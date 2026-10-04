@@ -10,8 +10,6 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    env:
-      TF_PLUGIN_CACHE_DIR: ${{ runner.temp }}/terraform-plugin-cache
     steps:
       - name: Checkout
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
@@ -22,7 +20,9 @@ jobs:
           terraform_version: 1.9.8
 
       - name: Prepare Terraform plugin cache
-        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+        run: |
+          mkdir -p "$RUNNER_TEMP/terraform-plugin-cache"
+          echo "TF_PLUGIN_CACHE_DIR=$RUNNER_TEMP/terraform-plugin-cache" >> "$GITHUB_ENV"
 
       - name: Cache Terraform plugins
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
