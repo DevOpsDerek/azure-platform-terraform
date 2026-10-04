@@ -21,6 +21,13 @@ tools:
   github:
     read-only: true
     toolsets: [repos, issues, actions]
+safe-outputs:
+  steps:
+    - name: Gate reporting on detection success
+      if: needs.detection.outputs.detection_success != 'true'
+      run: |
+        echo "::error::Threat detection did not report success; safe outputs are blocked."
+        exit 1
 ---
 
 Follow the imported diagnosis procedure for the triggering completed run:

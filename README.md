@@ -123,6 +123,9 @@ Diagnosis is restricted to failed, completed runs of `terraform` and
 Fork PRs and manual runs are excluded, particularly the credentialed opt-in plan.
 Feature-branch PR checks are intentionally eligible, so no `main`-only head-branch
 filter is used; the compiler's branch-filter warning is expected.
+Before processing safe outputs, the generated workflow fails closed unless the
+detection job's explicit `detection_success` output is `true`; a successful job
+result alone cannot authorize reporting.
 The agent has read-only contents, Actions, and issue tools; GitHub writes are
 limited to the compiler's isolated, bounded diagnostic-issue safe output.
 It cannot change code, rerun checks, apply/destroy infrastructure, deploy, merge,
