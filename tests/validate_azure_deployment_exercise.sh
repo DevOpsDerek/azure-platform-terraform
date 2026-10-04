@@ -37,7 +37,16 @@ require_text "${WORKFLOW}" 'subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}'
 require_text "${WORKFLOW}" "allow-no-subscriptions: true"
 require_text "${WORKFLOW}" '--subscription "${AZURE_SUBSCRIPTION_ID}"'
 require_text "${WORKFLOW}" 'AZURE_LOCATION}" =~ ^[a-z0-9]+$'
+require_text "${WORKFLOW}" '.location == $location'
+require_text "${WORKFLOW}" '.sku == "Standard_LRS"'
+require_text "${WORKFLOW}" '.httpsOnly == true'
+require_text "${WORKFLOW}" '.minTlsVersion == "TLS1_2"'
+require_text "${WORKFLOW}" '.allowBlobPublicAccess == false'
+require_text "${WORKFLOW}" '.allowSharedKeyAccess == false'
+require_text "${WORKFLOW}" '.exerciseRunId == $run_id'
 require_text "${WORKFLOW}" '--query "[].id"'
+require_text "${WORKFLOW}" 'if [[ -n "${remaining}" ]]'
+require_text "${WORKFLOW}" 'exit 1'
 require_text "${PR_WORKFLOW}" "pull_request:"
 
 if grep -Eq '^[[:space:]]+pull_request:|AZURE_CLIENT_SECRET|ARM_CLIENT_SECRET' "${WORKFLOW}"; then
@@ -52,6 +61,11 @@ fi
 
 if grep -Fq '[?tags.exercise_run_id' "${WORKFLOW}"; then
   echo "Residual verification must cover the dedicated resource group, including prior run attempts." >&2
+  exit 1
+fi
+
+if grep -Eq 'az storage (blob|container|file|queue|table)|resource "azurerm_storage_(blob|container|file|queue|table|share|data_lake_gen2)' "${WORKFLOW}" "${TERRAFORM}"; then
+  echo "The exercise must not call storage data-plane APIs or create data-plane resources." >&2
   exit 1
 fi
 
