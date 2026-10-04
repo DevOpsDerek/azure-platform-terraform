@@ -21,7 +21,7 @@ jobs:
       workflows-directory: .github/workflows
 
   terraform-validation:
-    uses: DevOpsDerek/workflows/.github/workflows/lint-terraform.yml@35ec3f531b5eb0f0f42f232f23e1dc5735e36c35
+    uses: DevOpsDerek/workflows/.github/workflows/lint-terraform.yml@5ecebff22598835cbf5ccd7bfa07c036cce22ee9
     with:
       terraform-version: 1.9.8
       working-directory: .
