@@ -140,7 +140,7 @@ write-capable GitHub tool-token overrides. No agent run or credentialed plan is
 needed to compile and validate this configuration.
 
 The central `terraform-validation` job calls the shared Terraform workflow at
-immutable commit `5ecebff22598835cbf5ccd7bfa07c036cce22ee9`, using Terraform
+immutable commit `30f86d7d8536364b0a31de4bc66214b39e8785bb`, using Terraform
 **1.9.8**. It runs recursive fmt, backend-disabled initialization with the
 readonly lockfile, and validate. The repository-specific `terraform-checks` job
 retains readonly-lockfile initialization for provider inspection, TFLint
