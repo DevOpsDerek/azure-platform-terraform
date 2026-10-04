@@ -44,8 +44,9 @@ the repository variable, an Azure/repository owner must:
 2. Create an empty resource group dedicated to this exercise. Set the protected
    environment variables `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`,
    `AZURE_CLIENT_ID`, `AZURE_EXERCISE_RESOURCE_GROUP`, and
-   `AZURE_EXERCISE_LOCATION` to the real values; do not commit IDs or use a
-   client secret.
+   `AZURE_EXERCISE_LOCATION` to the real values. Set the location to its
+   canonical Azure slug (for example, `uksouth`), not a display name such as
+   `UK South`; do not commit IDs or use a client secret.
 3. Assign only `Reader` and `Storage Account Contributor` to the federated
    identity, scoped to that dedicated resource group. Do not grant subscription
    `Contributor`, `Owner`, policy-management, or role-assignment permissions.
