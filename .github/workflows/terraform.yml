@@ -54,6 +54,14 @@ jobs:
           tflint --init
           tflint --recursive
 
+      - name: Validate approved deployment exercise safeguards
+        run: bash ./tests/validate_azure_deployment_exercise.sh
+
+      - name: Validate approved deployment exercise Terraform
+        run: |
+          terraform -chdir=exercises/azure-deployment init -backend=false -input=false -lockfile=readonly
+          terraform -chdir=exercises/azure-deployment validate
+
       - name: tfsec
         uses: aquasecurity/tfsec-action@b466648d6e39e7c75324f25d83891162a721f2d6
         with:

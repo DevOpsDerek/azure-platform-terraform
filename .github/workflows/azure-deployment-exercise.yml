@@ -1,0 +1,178 @@
+name: Approved Azure deployment exercise
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_exercise:
+        description: "Confirm this is an approved BG-014 exercise run"
+        required: true
+        type: boolean
+        default: false
+      confirm_25_gbp_budget:
+        description: "Confirm the owner-approved £25 Azure budget for this run"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: azure-deployment-exercise
+  cancel-in-progress: false
+
+jobs:
+  exercise:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      github.ref_protected &&
+      inputs.confirm_exercise &&
+      inputs.confirm_25_gbp_budget &&
+      vars.AZURE_EXERCISE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: azure-deployment-exercise
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ARM_USE_OIDC: true
+      ARM_USE_CLI: false
+      ARM_SKIP_PROVIDER_REGISTRATION: true
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_EXERCISE_RESOURCE_GROUP }}
+      AZURE_LOCATION: ${{ vars.AZURE_EXERCISE_LOCATION }}
+      TF_VAR_resource_group_name: ${{ vars.AZURE_EXERCISE_RESOURCE_GROUP }}
+      TF_VAR_location: ${{ vars.AZURE_EXERCISE_LOCATION }}
+      TF_VAR_run_id: ${{ github.run_id }}
+      TF_VAR_run_attempt: ${{ github.run_attempt }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+
+      - name: Generate globally unique storage account name
+        run: |
+          set -euo pipefail
+          suffix="$(printf '%s' "${GITHUB_REPOSITORY_ID}-${GITHUB_RUN_ID}" | sha256sum | cut -c1-22)"
+          echo "TF_VAR_storage_account_name=bg${suffix}" >> "${GITHUB_ENV}"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
+        with:
+          terraform_version: 1.9.8
+
+      - name: Validate owner-configured prerequisites
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_EXERCISE_RESOURCE_GROUP }}
+          AZURE_LOCATION: ${{ vars.AZURE_EXERCISE_LOCATION }}
+        run: |
+          set -euo pipefail
+          require_value() {
+            local name="$1"
+            local value="$2"
+            if [[ -z "${value}" ]]; then
+              echo "::error::Missing required protected-environment variable: ${name}"
+              exit 1
+            fi
+          }
+          require_value AZURE_CLIENT_ID "${AZURE_CLIENT_ID}"
+          require_value AZURE_TENANT_ID "${AZURE_TENANT_ID}"
+          require_value AZURE_SUBSCRIPTION_ID "${AZURE_SUBSCRIPTION_ID}"
+          require_value AZURE_RESOURCE_GROUP "${AZURE_RESOURCE_GROUP}"
+          require_value AZURE_LOCATION "${AZURE_LOCATION}"
+          if [[ ! "${AZURE_LOCATION}" =~ ^[a-z0-9]+$ ]]; then
+            echo "::error::AZURE_EXERCISE_LOCATION must be the canonical Azure location slug (for example, uksouth)."
+            exit 1
+          fi
+          if [[ ! "${TF_VAR_storage_account_name}" =~ ^bg[a-f0-9]{22}$ ]]; then
+            echo "::error::Generated storage account name is outside Azure's supported naming rules."
+            exit 1
+          fi
+
+      - name: Azure login using GitHub OIDC
+        id: azure-login
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
+
+      - name: Verify exercise resource group is empty before deployment
+        id: preflight
+        run: |
+          set -euo pipefail
+          existing="$(az resource list \
+            --subscription "${AZURE_SUBSCRIPTION_ID}" \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --query "[].id" \
+            --output tsv)"
+          if [[ -n "${existing}" ]]; then
+            echo "::error::The dedicated BG-014 exercise resource group is not empty; deployment is blocked to avoid collisions or additional charges."
+            printf '%s\n' "${existing}"
+            exit 1
+          fi
+          echo "The dedicated BG-014 exercise resource group is empty."
+
+      - name: Initialize isolated exercise configuration
+        id: terraform-init
+        run: timeout --signal=TERM --kill-after=30s 5m terraform -chdir=exercises/azure-deployment init -backend=false -input=false -lockfile=readonly
+
+      - name: Create and apply exercise plan
+        id: terraform-apply
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM --kill-after=30s 5m terraform -chdir=exercises/azure-deployment plan -input=false -lock=false -out=tfplan
+          timeout --signal=TERM --kill-after=30s 8m terraform -chdir=exercises/azure-deployment apply -input=false -lock=false -auto-approve tfplan
+
+      - name: Verify deployed exercise resource
+        if: ${{ steps.terraform-apply.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          az storage account show \
+            --subscription "${AZURE_SUBSCRIPTION_ID}" \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --name "${TF_VAR_storage_account_name}" \
+            --query "{id:id,location:primaryLocation,sku:sku.name,httpsOnly:enableHttpsTrafficOnly,minTlsVersion:minimumTlsVersion,allowBlobPublicAccess:allowBlobPublicAccess,allowSharedKeyAccess:allowSharedKeyAccess,exerciseRunId:tags.exercise_run_id}" \
+            --output json > "${RUNNER_TEMP}/azure-exercise-resource.json"
+          jq -e \
+            --arg location "${AZURE_LOCATION}" \
+            --arg run_id "${TF_VAR_run_id}-${TF_VAR_run_attempt}" \
+            '.location == $location and
+             .sku == "Standard_LRS" and
+             .httpsOnly == true and
+             .minTlsVersion == "TLS1_2" and
+             .allowBlobPublicAccess == false and
+             .allowSharedKeyAccess == false and
+             .exerciseRunId == $run_id' \
+            "${RUNNER_TEMP}/azure-exercise-resource.json"
+
+      - name: Tear down exercise resources
+        if: ${{ always() && steps.terraform-init.outcome == 'success' && steps.azure-login.outcome == 'success' }}
+        id: terraform-destroy
+        run: timeout --signal=TERM --kill-after=30s 8m terraform -chdir=exercises/azure-deployment destroy -input=false -lock=false -auto-approve
+
+      - name: Verify no exercise resources remain
+        if: ${{ always() && steps.azure-login.outcome == 'success' }}
+        id: residual-check
+        run: |
+          set -euo pipefail
+          remaining="$(az resource list \
+            --subscription "${AZURE_SUBSCRIPTION_ID}" \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --query "[].id" \
+            --output tsv)"
+          if [[ -n "${remaining}" ]]; then
+            echo "::error::Resources remain in the dedicated BG-014 exercise resource group and may continue to incur charges:"
+            printf '%s\n' "${remaining}"
+            exit 1
+          fi
+          echo "The dedicated BG-014 exercise resource group contains no resources."
