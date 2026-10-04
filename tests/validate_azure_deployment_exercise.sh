@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WORKFLOW="${ROOT_DIR}/.github/workflows/azure-deployment-exercise.yml"
+PR_WORKFLOW="${ROOT_DIR}/.github/workflows/terraform.yml"
+TERRAFORM="${ROOT_DIR}/exercises/azure-deployment/main.tf"
+
+require_text() {
+  local file="$1"
+  local text="$2"
+
+  if ! grep -Fq -- "${text}" "${file}"; then
+    echo "Missing required exercise safeguard in ${file}: ${text}" >&2
+    exit 1
+  fi
+}
+
+require_text "${WORKFLOW}" "workflow_dispatch:"
+require_text "${WORKFLOW}" "default: false"
+require_text "${WORKFLOW}" "github.ref_protected"
+require_text "${WORKFLOW}" "vars.AZURE_EXERCISE_ENABLED == 'true'"
+require_text "${WORKFLOW}" "environment:"
+require_text "${WORKFLOW}" "name: azure-deployment-exercise"
+require_text "${WORKFLOW}" "id-token: write"
+require_text "${WORKFLOW}" "timeout-minutes: 40"
+require_text "${WORKFLOW}" "always()"
+require_text "${WORKFLOW}" "destroy -input=false -lock=false -auto-approve"
+require_text "${WORKFLOW}" "az resource list"
+require_text "${WORKFLOW}" "ARM_USE_OIDC: true"
+require_text "${WORKFLOW}" "ARM_SKIP_PROVIDER_REGISTRATION: true"
+require_text "${PR_WORKFLOW}" "pull_request:"
+
+if grep -Eq '^[[:space:]]+pull_request:|AZURE_CLIENT_SECRET|ARM_CLIENT_SECRET' "${WORKFLOW}"; then
+  echo "The exercise workflow must not run on pull requests or use client secrets." >&2
+  exit 1
+fi
+
+if grep -Fq "terraform apply" "${PR_WORKFLOW}"; then
+  echo "Pull-request validation must never apply Terraform changes." >&2
+  exit 1
+fi
+
+require_text "${TERRAFORM}" 'account_replication_type        = "LRS"'
+require_text "${TERRAFORM}" "https_traffic_only_enabled      = true"
+require_text "${TERRAFORM}" "allow_nested_items_to_be_public = false"
+require_text "${TERRAFORM}" 'min_tls_version                 = "TLS1_2"'
+require_text "${TERRAFORM}" 'exercise_run_id = "${var.run_id}-${var.run_attempt}"'
+
+if grep -Eq 'resource "azurerm_resource_group"|resource "azurerm_subscription_' "${TERRAFORM}"; then
+  echo "The exercise must not create resource groups or subscription-scoped resources." >&2
+  exit 1
+fi
+
+echo "Approved Azure deployment exercise safeguards are present."
