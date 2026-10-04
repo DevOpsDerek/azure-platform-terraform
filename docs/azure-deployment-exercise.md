@@ -53,7 +53,9 @@ the repository variable, an Azure/repository owner must:
    Pre-register the `Microsoft.Storage` resource provider in the subscription
    using the owner's normal administrative process. The workflow sets
    `ARM_SKIP_PROVIDER_REGISTRATION=true` and the identity has no provider
-   registration rights.
+   registration rights. Terraform and the Azure CLI use Azure Resource Manager
+   management-plane operations only; the workflow does not read or write blobs
+   or containers and does not need storage data-plane roles.
 4. Configure the protected environment with at least one required human
    reviewer, disallow self-review, and limit who can approve. Require protection
    on the default branch and keep the enable variable false until all
@@ -92,14 +94,15 @@ Terraform state on the ephemeral runner may be unavailable; the owner must
 inspect the dedicated resource group and remove any `exercise_id=BG-014`
 resources, then verify it is empty before another exercise.
 
-The resource-list check confirms no resources with the run's tag remain; it
-cannot verify Azure billing has settled or catch resources whose tags were
-changed. After each run, the owner must independently inspect the dedicated
+The residual check inspects **all** resources in the dedicated exercise group,
+not only the current run or attempt, so an orphan from an earlier rerun blocks
+success as well. A failed teardown or residual check requires immediate owner
+cleanup. After each run, the owner must independently inspect the dedicated
 resource group for any remaining resources and review Azure Cost Management
 after metering has had time to settle (typically 24-48 hours). Record the actual
 amount against the £25 target before authorizing another exercise. This
 post-run owner review is required even when the workflow reports successful
-teardown and an empty run-tag query.
+teardown and an empty resource group.
 
 ## Pull-request checks
 

@@ -37,6 +37,7 @@ require_text "${WORKFLOW}" 'subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}'
 require_text "${WORKFLOW}" "allow-no-subscriptions: true"
 require_text "${WORKFLOW}" '--subscription "${AZURE_SUBSCRIPTION_ID}"'
 require_text "${WORKFLOW}" 'AZURE_LOCATION}" =~ ^[a-z0-9]+$'
+require_text "${WORKFLOW}" '--query "[].id"'
 require_text "${PR_WORKFLOW}" "pull_request:"
 
 if grep -Eq '^[[:space:]]+pull_request:|AZURE_CLIENT_SECRET|ARM_CLIENT_SECRET' "${WORKFLOW}"; then
@@ -46,6 +47,11 @@ fi
 
 if grep -Fq "terraform apply" "${PR_WORKFLOW}"; then
   echo "Pull-request validation must never apply Terraform changes." >&2
+  exit 1
+fi
+
+if grep -Fq '[?tags.exercise_run_id' "${WORKFLOW}"; then
+  echo "Residual verification must cover the dedicated resource group, including prior run attempts." >&2
   exit 1
 fi
 

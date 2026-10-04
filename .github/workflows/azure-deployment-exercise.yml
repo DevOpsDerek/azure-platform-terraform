@@ -147,11 +147,11 @@ jobs:
           remaining="$(az resource list \
             --subscription "${AZURE_SUBSCRIPTION_ID}" \
             --resource-group "${AZURE_RESOURCE_GROUP}" \
-            --query "[?tags.exercise_run_id=='${TF_VAR_run_id}-${TF_VAR_run_attempt}'].id" \
+            --query "[].id" \
             --output tsv)"
           if [[ -n "${remaining}" ]]; then
-            echo "::error::BG-014 resources remain and may continue to incur charges:"
+            echo "::error::Resources remain in the dedicated BG-014 exercise resource group and may continue to incur charges:"
             printf '%s\n' "${remaining}"
             exit 1
           fi
-          echo "No resources tagged for this BG-014 run remain in the exercise resource group."
+          echo "The dedicated BG-014 exercise resource group contains no resources."
