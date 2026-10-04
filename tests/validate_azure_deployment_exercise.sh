@@ -27,6 +27,10 @@ require_text "${WORKFLOW}" "timeout-minutes: 40"
 require_text "${WORKFLOW}" "always()"
 require_text "${WORKFLOW}" "destroy -input=false -lock=false -auto-approve"
 require_text "${WORKFLOW}" "az resource list"
+require_text "${WORKFLOW}" "minTlsVersion == \"TLS1_2\""
+require_text "${WORKFLOW}" "allowBlobPublicAccess == false"
+require_text "${WORKFLOW}" "allowSharedKeyAccess == false"
+require_text "${WORKFLOW}" "exerciseRunId == \$run_id"
 require_text "${WORKFLOW}" "ARM_USE_OIDC: true"
 require_text "${WORKFLOW}" "ARM_SKIP_PROVIDER_REGISTRATION: true"
 require_text "${PR_WORKFLOW}" "pull_request:"
@@ -46,6 +50,7 @@ require_text "${TERRAFORM}" "https_traffic_only_enabled      = true"
 require_text "${TERRAFORM}" "allow_nested_items_to_be_public = false"
 require_text "${TERRAFORM}" 'min_tls_version                 = "TLS1_2"'
 require_text "${TERRAFORM}" 'exercise_run_id = "${var.run_id}-${var.run_attempt}"'
+require_text "${ROOT_DIR}/docs/azure-deployment-exercise.md" 'Pre-register the `Microsoft.Storage` resource provider'
 
 if grep -Eq 'resource "azurerm_resource_group"|resource "azurerm_subscription_' "${TERRAFORM}"; then
   echo "The exercise must not create resource groups or subscription-scoped resources." >&2

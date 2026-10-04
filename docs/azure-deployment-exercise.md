@@ -45,8 +45,10 @@ the repository variable, an Azure/repository owner must:
 3. Assign only `Reader` and `Storage Account Contributor` to the federated
    identity, scoped to that dedicated resource group. Do not grant subscription
    `Contributor`, `Owner`, policy-management, or role-assignment permissions.
-   Provider registration is skipped by the workflow, so registration rights
-   are not needed.
+   Pre-register the `Microsoft.Storage` resource provider in the subscription
+   using the owner's normal administrative process. The workflow sets
+   `ARM_SKIP_PROVIDER_REGISTRATION=true` and the identity has no provider
+   registration rights.
 4. Configure the protected environment with at least one required human
    reviewer, disallow self-review, and limit who can approve. Require protection
    on the default branch and keep the enable variable false until all
@@ -75,17 +77,24 @@ Budget alerts are notifications, **not a hard cap**: they do not stop
 deployment or prevent additional charges. This workflow does not create or
 change budget alerts.
 
-The workflow times Terraform operations, limits the job to 40 minutes, runs
-`terraform destroy` even after an apply/check failure, and queries the dedicated
-resource group for resources tagged with the run ID. A failed destroy or
-residual check fails the run and requires immediate owner cleanup. If the job
-is cancelled or the hosted runner is terminated before teardown, the owner
-must inspect the resource group and remove any `exercise_id=BG-014` resources.
-The resource-list check confirms resource teardown, not that all metered charges
-have posted. After the run, the owner must review Azure Cost Management for the
-resource group after metering has had time to settle (typically 24-48 hours)
-and record the actual amount against the £25 target before authorizing another
-exercise.
+The workflow times Terraform operations, limits the job to 40 minutes, checks
+the created account's region, SKU, TLS, public-access/shared-key settings and
+run tag, runs `terraform destroy` even after an apply/check failure, and queries
+the dedicated resource group for resources tagged with the run ID. A failed
+destroy or residual check fails the run and requires immediate owner cleanup.
+If the job is cancelled or the hosted runner is terminated before teardown, the
+Terraform state on the ephemeral runner may be unavailable; the owner must
+inspect the dedicated resource group and remove any `exercise_id=BG-014`
+resources, then verify it is empty before another exercise.
+
+The resource-list check confirms no resources with the run's tag remain; it
+cannot verify Azure billing has settled or catch resources whose tags were
+changed. After each run, the owner must independently inspect the dedicated
+resource group for any remaining resources and review Azure Cost Management
+after metering has had time to settle (typically 24-48 hours). Record the actual
+amount against the £25 target before authorizing another exercise. This
+post-run owner review is required even when the workflow reports successful
+teardown and an empty run-tag query.
 
 ## Pull-request checks
 

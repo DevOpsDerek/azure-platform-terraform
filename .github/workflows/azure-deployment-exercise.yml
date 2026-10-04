@@ -113,8 +113,19 @@ jobs:
           az storage account show \
             --resource-group "${AZURE_RESOURCE_GROUP}" \
             --name "${TF_VAR_storage_account_name}" \
-            --query "{name:name,location:primaryLocation,httpsOnly:enableHttpsTrafficOnly}" \
-            --output json
+            --query "{id:id,location:primaryLocation,sku:sku.name,httpsOnly:enableHttpsTrafficOnly,minTlsVersion:minimumTlsVersion,allowBlobPublicAccess:allowBlobPublicAccess,allowSharedKeyAccess:allowSharedKeyAccess,exerciseRunId:tags.exercise_run_id}" \
+            --output json > "${RUNNER_TEMP}/azure-exercise-resource.json"
+          jq -e \
+            --arg location "${AZURE_LOCATION}" \
+            --arg run_id "${TF_VAR_run_id}-${TF_VAR_run_attempt}" \
+            '.location == $location and
+             .sku == "Standard_LRS" and
+             .httpsOnly == true and
+             .minTlsVersion == "TLS1_2" and
+             .allowBlobPublicAccess == false and
+             .allowSharedKeyAccess == false and
+             .exerciseRunId == $run_id' \
+            "${RUNNER_TEMP}/azure-exercise-resource.json"
 
       - name: Tear down exercise resources
         if: ${{ always() && steps.terraform-init.outcome == 'success' && steps.azure-login.outcome == 'success' }}
@@ -122,7 +133,7 @@ jobs:
         run: timeout --signal=TERM --kill-after=30s 8m terraform -chdir=exercises/azure-deployment destroy -input=false -lock=false -auto-approve
 
       - name: Verify no exercise resources remain
-        if: ${{ always() && steps.azure-login.outcome == 'success' }}
+        if: ${{ always() && steps.azure-login.outcome == 'success' && steps.terraform-init.outcome == 'success' }}
         id: residual-check
         run: |
           set -euo pipefail
