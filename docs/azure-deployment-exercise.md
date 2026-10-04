@@ -24,7 +24,11 @@ The workflow requests `id-token: write` only for this gated job. Pull-request
 validation remains credential-free and does not plan or apply against Azure.
 Coding agents must not receive environment approval or Azure credentials.
 Approval is required again for each dispatch because this is an environment
-protection rule, not a stored deployment credential.
+protection rule, not a stored deployment credential. Azure Login allows login
+when the identity cannot enumerate subscriptions while retaining the
+owner-supplied subscription ID. Terraform and Azure CLI resource queries target
+that subscription explicitly; the identity remains scoped to the dedicated
+resource group.
 
 ## Owner-created Azure prerequisites
 

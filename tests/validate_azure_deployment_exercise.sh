@@ -33,6 +33,9 @@ require_text "${WORKFLOW}" "allowSharedKeyAccess == false"
 require_text "${WORKFLOW}" "exerciseRunId == \$run_id"
 require_text "${WORKFLOW}" "ARM_USE_OIDC: true"
 require_text "${WORKFLOW}" "ARM_SKIP_PROVIDER_REGISTRATION: true"
+require_text "${WORKFLOW}" 'subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}'
+require_text "${WORKFLOW}" "allow-no-subscriptions: true"
+require_text "${WORKFLOW}" '--subscription "${AZURE_SUBSCRIPTION_ID}"'
 require_text "${PR_WORKFLOW}" "pull_request:"
 
 if grep -Eq '^[[:space:]]+pull_request:|AZURE_CLIENT_SECRET|ARM_CLIENT_SECRET' "${WORKFLOW}"; then

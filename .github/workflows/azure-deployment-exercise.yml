@@ -44,6 +44,7 @@ jobs:
       ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_EXERCISE_RESOURCE_GROUP }}
       AZURE_LOCATION: ${{ vars.AZURE_EXERCISE_LOCATION }}
       TF_VAR_resource_group_name: ${{ vars.AZURE_EXERCISE_RESOURCE_GROUP }}
@@ -94,6 +95,7 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
 
       - name: Initialize isolated exercise configuration
         id: terraform-init
@@ -111,6 +113,7 @@ jobs:
         run: |
           set -euo pipefail
           az storage account show \
+            --subscription "${AZURE_SUBSCRIPTION_ID}" \
             --resource-group "${AZURE_RESOURCE_GROUP}" \
             --name "${TF_VAR_storage_account_name}" \
             --query "{id:id,location:primaryLocation,sku:sku.name,httpsOnly:enableHttpsTrafficOnly,minTlsVersion:minimumTlsVersion,allowBlobPublicAccess:allowBlobPublicAccess,allowSharedKeyAccess:allowSharedKeyAccess,exerciseRunId:tags.exercise_run_id}" \
@@ -138,6 +141,7 @@ jobs:
         run: |
           set -euo pipefail
           remaining="$(az resource list \
+            --subscription "${AZURE_SUBSCRIPTION_ID}" \
             --resource-group "${AZURE_RESOURCE_GROUP}" \
             --query "[?tags.exercise_run_id=='${TF_VAR_run_id}-${TF_VAR_run_attempt}'].id" \
             --output tsv)"
