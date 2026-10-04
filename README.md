@@ -139,14 +139,15 @@ Do not give the agent Azure credentials, an OIDC permission, plan artifacts, or
 write-capable GitHub tool-token overrides. No agent run or credentialed plan is
 needed to compile and validate this configuration.
 
-The existing Terraform job/check names, Terraform **1.9.8**, AzureRM **4.44.0**,
-recursive fmt, backend-disabled init/validate, TFLint **v0.56.0**, hard-fail tfsec,
-and eight negative governance fixtures are retained. The central runtime helper
-is not a complete replacement: its Terraform initialization does not enforce
-the root's readonly lockfile, and it does not cover fmt, lint, security scanning,
-or the negative-fixture harness. There is no verified central plan-reporting
-interface in the adopted catalog; the existing plan remains manually requested
-and separate from diagnosis.
+The central `terraform-validation` job uses the shared Terraform workflow for
+recursive fmt and backend-disabled init/validate, pinned to Terraform **1.9.8**.
+The repository-specific `terraform-checks` job retains readonly-lockfile
+initialization and validation, provider inspection, TFLint **v0.56.0**, and
+hard-fail tfsec; `Terraform governance validation` retains its readonly-lockfile
+initialization and eight negative fixtures. The shared workflow does not enforce
+the root's readonly lockfile or cover these repository-specific checks. There is
+no verified central plan-reporting interface in the adopted catalog; the
+existing plan remains manually requested and separate from diagnosis.
 
 At adoption, the GitHub API reported no protection on `main`, no repository
 rulesets, and only the unprotected `copilot` environment; `terraform-plan` was
