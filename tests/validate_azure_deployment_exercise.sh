@@ -41,6 +41,9 @@ require_text "${WORKFLOW}" "ARM_SKIP_PROVIDER_REGISTRATION: true"
 require_text "${WORKFLOW}" 'subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}'
 require_text "${WORKFLOW}" "allow-no-subscriptions: true"
 require_text "${WORKFLOW}" '--subscription "${AZURE_SUBSCRIPTION_ID}"'
+require_text "${WORKFLOW}" "Verify exercise resource group is empty before deployment"
+require_text "${WORKFLOW}" "The dedicated BG-014 exercise resource group is not empty"
+require_text "${WORKFLOW}" "The dedicated BG-014 exercise resource group is empty."
 require_text "${WORKFLOW}" 'AZURE_LOCATION}" =~ ^[a-z0-9]+$'
 require_text "${WORKFLOW}" '.location == $location'
 require_text "${WORKFLOW}" '.sku == "Standard_LRS"'
@@ -84,7 +87,15 @@ require_text "${TERRAFORM}" "https_traffic_only_enabled      = true"
 require_text "${TERRAFORM}" "allow_nested_items_to_be_public = false"
 require_text "${TERRAFORM}" 'min_tls_version                 = "TLS1_2"'
 require_text "${TERRAFORM}" 'exercise_run_id = "${var.run_id}-${var.run_attempt}"'
+require_text "${ROOT_DIR}/exercises/azure-deployment/variables.tf" '^bg[a-f0-9]{22}$'
 require_text "${ROOT_DIR}/docs/azure-deployment-exercise.md" 'Pre-register the `Microsoft.Storage` resource provider'
+
+preflight_line="$(grep -nF "id: preflight" "${WORKFLOW}" | cut -d: -f1)"
+terraform_init_line="$(grep -nF "id: terraform-init" "${WORKFLOW}" | cut -d: -f1)"
+if (( preflight_line >= terraform_init_line )); then
+  echo "The empty-resource-group preflight must run before Terraform initialization." >&2
+  exit 1
+fi
 
 if grep -Eq 'resource "azurerm_resource_group"|resource "azurerm_subscription_' "${TERRAFORM}"; then
   echo "The exercise must not create resource groups or subscription-scoped resources." >&2

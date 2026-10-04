@@ -87,14 +87,16 @@ change budget alerts.
 
 The workflow times Terraform operations, limits the job to 40 minutes, checks
 the created account's region, SKU, TLS, public-access/shared-key settings and
-run tag, runs `terraform destroy` even after an apply/check failure, and queries
-the dedicated resource group for any remaining resources after Azure login,
-even if Terraform initialization failed. A failed destroy or residual check
-fails the run and requires immediate owner cleanup. If the job is cancelled or
-the hosted runner is terminated before teardown, the Terraform state on the
-ephemeral runner may be unavailable; the owner must inspect the dedicated
-resource group and remove any `exercise_id=BG-014` resources, then verify it is
-empty before another exercise.
+run tag. Before Terraform initialization, it blocks deployment unless the
+dedicated resource group is empty, preventing stale resources from being
+overwritten or obscured by a new run. It runs `terraform destroy` even after an
+apply/check failure and queries the group for any remaining resources after
+Azure login, even if Terraform initialization failed. A failed destroy or
+residual check fails the run and requires immediate owner cleanup. If the job
+is cancelled or the hosted runner is terminated before teardown, the Terraform
+state on the ephemeral runner may be unavailable; the owner must inspect the
+dedicated resource group and remove any `exercise_id=BG-014` resources, then
+verify it is empty before another exercise.
 
 The residual check inspects **all** resources in the dedicated exercise group,
 not only the current run or attempt, so an orphan from an earlier rerun blocks

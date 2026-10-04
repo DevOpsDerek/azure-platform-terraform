@@ -106,6 +106,22 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           allow-no-subscriptions: true
 
+      - name: Verify exercise resource group is empty before deployment
+        id: preflight
+        run: |
+          set -euo pipefail
+          existing="$(az resource list \
+            --subscription "${AZURE_SUBSCRIPTION_ID}" \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --query "[].id" \
+            --output tsv)"
+          if [[ -n "${existing}" ]]; then
+            echo "::error::The dedicated BG-014 exercise resource group is not empty; deployment is blocked to avoid collisions or additional charges."
+            printf '%s\n' "${existing}"
+            exit 1
+          fi
+          echo "The dedicated BG-014 exercise resource group is empty."
+
       - name: Initialize isolated exercise configuration
         id: terraform-init
         run: timeout --signal=TERM --kill-after=30s 5m terraform -chdir=exercises/azure-deployment init -backend=false -input=false -lockfile=readonly
