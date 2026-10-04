@@ -20,7 +20,14 @@ jobs:
       gh-aw-version: v0.89.21
       workflows-directory: .github/workflows
 
+  terraform-validation:
+    uses: DevOpsDerek/workflows/.github/workflows/lint-terraform.yml@35ec3f531b5eb0f0f42f232f23e1dc5735e36c35
+    with:
+      terraform-version: 1.9.8
+      working-directory: .
+
   terraform-checks:
+    needs: terraform-validation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,14 +38,8 @@ jobs:
         with:
           terraform_version: 1.9.8
 
-      - name: Terraform fmt
-        run: terraform fmt -check -recursive
-
       - name: Terraform init (no backend)
         run: terraform init -backend=false -input=false -lockfile=readonly
-
-      - name: Terraform validate
-        run: terraform validate
 
       - name: Terraform providers
         run: terraform providers
