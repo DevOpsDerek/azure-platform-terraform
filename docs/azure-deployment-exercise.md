@@ -2,8 +2,9 @@
 
 The exercise is a separate Terraform root at `exercises/azure-deployment`. It
 creates one empty, Standard LRS StorageV2 account in an **owner-created,
-dedicated resource group**, checks it, destroys it, and checks that no resources
-tagged for that workflow run remain. It does not create a resource group, AKS,
+dedicated resource group**, checks it, destroys it, and checks that the resource
+group is empty. Its account name is derived from the globally unique repository
+ID and workflow run ID. It does not create a resource group, AKS,
 policy assignments, or subscription-scoped resources. Terraform state remains
 on the ephemeral hosted runner and is not uploaded as an artifact.
 
@@ -87,12 +88,13 @@ change budget alerts.
 The workflow times Terraform operations, limits the job to 40 minutes, checks
 the created account's region, SKU, TLS, public-access/shared-key settings and
 run tag, runs `terraform destroy` even after an apply/check failure, and queries
-the dedicated resource group for resources tagged with the run ID. A failed
-destroy or residual check fails the run and requires immediate owner cleanup.
-If the job is cancelled or the hosted runner is terminated before teardown, the
-Terraform state on the ephemeral runner may be unavailable; the owner must
-inspect the dedicated resource group and remove any `exercise_id=BG-014`
-resources, then verify it is empty before another exercise.
+the dedicated resource group for any remaining resources after Azure login,
+even if Terraform initialization failed. A failed destroy or residual check
+fails the run and requires immediate owner cleanup. If the job is cancelled or
+the hosted runner is terminated before teardown, the Terraform state on the
+ephemeral runner may be unavailable; the owner must inspect the dedicated
+resource group and remove any `exercise_id=BG-014` resources, then verify it is
+empty before another exercise.
 
 The residual check inspects **all** resources in the dedicated exercise group,
 not only the current run or attempt, so an orphan from an earlier rerun blocks

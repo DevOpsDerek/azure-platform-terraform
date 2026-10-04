@@ -24,8 +24,13 @@ require_text "${WORKFLOW}" "environment:"
 require_text "${WORKFLOW}" "name: azure-deployment-exercise"
 require_text "${WORKFLOW}" "id-token: write"
 require_text "${WORKFLOW}" "timeout-minutes: 40"
+require_text "${WORKFLOW}" "Generate globally unique storage account name"
+require_text "${WORKFLOW}" 'GITHUB_REPOSITORY_ID}-${GITHUB_RUN_ID}'
+require_text "${WORKFLOW}" 'sha256sum | cut -c1-22'
+require_text "${WORKFLOW}" '^bg[a-f0-9]{22}$'
 require_text "${WORKFLOW}" "always()"
 require_text "${WORKFLOW}" "destroy -input=false -lock=false -auto-approve"
+require_text "${WORKFLOW}" "if: \${{ always() && steps.azure-login.outcome == 'success' }}"
 require_text "${WORKFLOW}" "az resource list"
 require_text "${WORKFLOW}" "minTlsVersion == \"TLS1_2\""
 require_text "${WORKFLOW}" "allowBlobPublicAccess == false"
@@ -61,6 +66,11 @@ fi
 
 if grep -Fq '[?tags.exercise_run_id' "${WORKFLOW}"; then
   echo "Residual verification must cover the dedicated resource group, including prior run attempts." >&2
+  exit 1
+fi
+
+if grep -B 2 -F "id: residual-check" "${WORKFLOW}" | grep -Fq "steps.terraform-init.outcome"; then
+  echo "Residual verification must run after Azure login even if Terraform initialization fails." >&2
   exit 1
 fi
 
