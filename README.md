@@ -101,6 +101,58 @@ terraform {
 - The plan job is opt-in (`run_plan=true`) and requires repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`.
 - Live deployment is intentionally out of scope for routine CI and must be human-approved.
 
+## Central automation and human review
+
+The `automation-validation` job in the existing `terraform` workflow uses the central
+`DevOpsDerek/workflows` validator to lint Actions and compile gh-aw sources with
+CLI **v0.89.21**, checking that committed locks are current. It needs only
+`contents: read` and does not inherit repository secrets.
+
+`ci-failure-diagnosis.md` imports the central CI diagnosis component with
+`inlined-imports: true`; its compiled lock contains the reviewed instructions,
+so runtime does not fetch mutable shared prompts. Both central references are
+pinned to `dac4b81c298cb3ea6821ea312efa5375f42d5ccb` in their configuration.
+Commit source and generated lock together; regenerate with:
+
+```bash
+gh aw compile --validate --actionlint --no-check-update
+```
+
+Diagnosis is restricted to failed, completed runs of `terraform` and
+`Terraform governance validation` originating from same-repository pull requests.
+Fork PRs and manual runs are excluded, particularly the credentialed opt-in plan.
+Feature-branch PR checks are intentionally eligible, so no `main`-only head-branch
+filter is used; the compiler's branch-filter warning is expected.
+The agent has read-only contents, Actions, and issue tools; GitHub writes are
+limited to the compiler's isolated, bounded diagnostic-issue safe output.
+It cannot change code, rerun checks, apply/destroy infrastructure, deploy, merge,
+or bypass human review. Diagnostic issues are proposals, not approvals or proof
+that infrastructure is safe.
+
+Before enabling diagnosis after merge, configure the Copilot engine's
+`COPILOT_GITHUB_TOKEN` as described in the
+[gh-aw engine documentation](https://github.github.com/gh-aw/reference/engines/#github-copilot-default).
+Do not give the agent Azure credentials, an OIDC permission, plan artifacts, or
+write-capable GitHub tool-token overrides. No agent run or credentialed plan is
+needed to compile and validate this configuration.
+
+The existing Terraform job/check names, Terraform **1.9.8**, AzureRM **4.44.0**,
+recursive fmt, backend-disabled init/validate, TFLint **v0.56.0**, hard-fail tfsec,
+and eight negative governance fixtures are retained. The central runtime helper
+is not a complete replacement: its Terraform initialization does not enforce
+the root's readonly lockfile, and it does not cover fmt, lint, security scanning,
+or the negative-fixture harness. There is no verified central plan-reporting
+interface in the adopted catalog; the existing plan remains manually requested
+and separate from diagnosis.
+
+At adoption, the GitHub API reported no protection on `main`, no repository
+rulesets, and only the unprotected `copilot` environment; `terraform-plan` was
+absent. The current plan job's protected-default-branch gate therefore does not
+permit a live plan. Administrators must deliberately configure branch protection,
+required checks, an approval-protected `terraform-plan` environment, and a
+read-only Azure federated identity before human-authorized planning. This
+adoption does not provision credentials or change repository protections.
+
 ## Network and security assumptions
 
 - AKS runs in a dedicated subnet in a dedicated VNet.

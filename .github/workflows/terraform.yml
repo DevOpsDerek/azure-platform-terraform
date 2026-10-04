@@ -14,6 +14,12 @@ permissions:
   contents: read
 
 jobs:
+  automation-validation:
+    uses: DevOpsDerek/workflows/.github/workflows/validate-agentic-workflows.yml@dac4b81c298cb3ea6821ea312efa5375f42d5ccb
+    with:
+      gh-aw-version: v0.89.21
+      workflows-directory: .github/workflows
+
   terraform-checks:
     runs-on: ubuntu-latest
     steps:
